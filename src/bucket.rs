@@ -7,6 +7,7 @@ pub struct Buckets {
     fingerprint_bitwidth: usize, // fingerprint length in bits
     entries_per_bucket: usize,   // number of entries per bucket
     bucket_bitwidth: usize,
+    buckets: usize,
     bits: Bits,
 }
 impl Buckets {
@@ -18,8 +19,12 @@ impl Buckets {
             fingerprint_bitwidth,
             entries_per_bucket,
             bucket_bitwidth,
+            buckets,
             bits,
         }
+    }
+    pub fn len(&self) -> usize {
+        self.buckets
     }
     pub fn bits(&self) -> u64 {
         self.bits.capacity() as u64

@@ -10,18 +10,21 @@ pub trait Hasher {
     fn fingerprint<T: Hash + ?Sized>(&self, item: &T) -> u64;
 }
 
+// Arbitrary prefix to make the result of `fingerprint()` different from the result of `hash()`.
+const FINGERPRINT_PREFIX: u8 = b'F';
+
 /// The default implementation of `Hasher` trait.
 #[derive(Debug)]
 pub struct DefaultHasher;
 impl Hasher for DefaultHasher {
     fn hash<T: Hash + ?Sized>(&self, item: &T) -> u64 {
         let mut hasher = SipHasher13::new();
-        (0, item).hash(&mut hasher);
+        item.hash(&mut hasher);
         hasher.finish()
     }
     fn fingerprint<T: Hash + ?Sized>(&self, item: &T) -> u64 {
         let mut hasher = SipHasher13::new();
-        (1, item).hash(&mut hasher);
+        (FINGERPRINT_PREFIX, item).hash(&mut hasher);
         hasher.finish()
     }
 }
