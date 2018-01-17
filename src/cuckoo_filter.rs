@@ -22,8 +22,7 @@ impl CuckooFilter {
     }
     pub fn try_insert<T: Hash, H: BuildHasher>(&mut self, item: &T, hasher: &H) -> bool {
         let (fingerprint, i0, i1) = self.calculate_fingerprint_and_indices(item, hasher);
-        if self.buckets.get(i0).contains(fingerprint) || self.buckets.get(i1).contains(fingerprint)
-        {
+        if self.buckets.contains(i0, fingerprint) || self.buckets.contains(i1, fingerprint) {
             true
         } else {
             self.try_insert_fingerprint(i0, i1, fingerprint, hasher)
@@ -31,7 +30,7 @@ impl CuckooFilter {
     }
     pub fn contains<T: Hash, H: BuildHasher>(&self, item: &T, hasher: &H) -> bool {
         let (fingerprint, i0, i1) = self.calculate_fingerprint_and_indices(item, hasher);
-        self.buckets.get(i0).contains(fingerprint) || self.buckets.get(i1).contains(fingerprint)
+        self.buckets.contains(i0, fingerprint) || self.buckets.contains(i1, fingerprint)
     }
     pub fn bits(&self) -> u64 {
         self.buckets.bits()
@@ -53,16 +52,16 @@ impl CuckooFilter {
         mut fingerprint: u64,
         hasher: &H,
     ) -> bool {
-        if self.buckets.get(i0).try_insert(fingerprint) {
+        if self.buckets.try_insert(i0, fingerprint) {
             true
-        } else if self.buckets.get(i1).try_insert(fingerprint) {
+        } else if self.buckets.try_insert(i0, fingerprint) {
             true
         } else {
             let mut i = if rand::random::<bool>() { i0 } else { i1 };
             for _ in 0..self.max_kicks {
-                fingerprint = self.buckets.get(i).random_swap(fingerprint);
+                fingerprint = self.buckets.random_swap(i, fingerprint);
                 i = i ^ hash(&fingerprint, hasher) as usize;
-                if self.buckets.get(i).try_insert(fingerprint) {
+                if self.buckets.try_insert(i, fingerprint) {
                     return true;
                 }
             }
@@ -75,4 +74,14 @@ fn hash<T: Hash, H: BuildHasher>(item: &T, hasher: &H) -> u64 {
     let mut hasher = hasher.build_hasher();
     item.hash(&mut hasher);
     hasher.finish()
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn it_works() {
+        let mut filter = CuckooFilter::new(9, 4, 100, 32);
+    }
 }
