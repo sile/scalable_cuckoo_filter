@@ -9,7 +9,7 @@ pub struct Buckets {
 }
 impl Buckets {
     pub fn new(fingerprint_bitwidth: usize, entries_per_bucket: usize, buckets: usize) -> Self {
-        let bucket_bitwidth = 1 + fingerprint_bitwidth * entries_per_bucket;
+        let bucket_bitwidth = fingerprint_bitwidth * entries_per_bucket;
         let buckets_bitwidth = bucket_bitwidth * buckets;
         let bytes = vec![0; (buckets_bitwidth + 7) / 8];
         Buckets {
@@ -28,9 +28,7 @@ impl Buckets {
     }
 
     pub fn contains(&self, bucket_index: usize, fingerprint: u64) -> bool {
-        if fingerprint == 0 {
-            return self.contains_zero_fingerprint(bucket_index);
-        }
+        debug_assert_ne!(fingerprint, 0);
         for i in 0..self.entries_per_bucket {
             let f = self.get_fingerprint(bucket_index, i);
             if f == fingerprint {
@@ -43,10 +41,7 @@ impl Buckets {
     }
 
     pub fn try_insert(&mut self, bucket_index: usize, fingerprint: u64) -> bool {
-        if fingerprint == 0 {
-            self.insert_zero_fingerprint(bucket_index);
-            return true;
-        }
+        debug_assert_ne!(fingerprint, 0);
         for i in 0..self.entries_per_bucket {
             let f = self.get_fingerprint(bucket_index, i);
             if f == 0 {
@@ -58,17 +53,17 @@ impl Buckets {
     }
 
     pub fn random_swap(&mut self, bucket_index: usize, fingerprint: u64) -> u64 {
+        debug_assert_ne!(fingerprint, 0);
         let i = rand::random::<usize>() % self.entries_per_bucket;
         let f = self.get_fingerprint(bucket_index, i);
-        debug_assert_ne!(fingerprint, 0);
-        debug_assert_ne!(f, 0);
         self.set_fingerprint(bucket_index, i, fingerprint);
+        debug_assert_ne!(f, 0);
         f
     }
 
     fn set_fingerprint(&mut self, bucket_index: usize, entry_index: usize, mut fingerprint: u64) {
         let bit_offset =
-            self.bucket_bitwidth * bucket_index + 1 + entry_index * self.fingerprint_bitwidth;
+            self.bucket_bitwidth * bucket_index + self.fingerprint_bitwidth * entry_index;
         let base = bit_offset / 8;
         let mut offset = bit_offset % 8;
 
@@ -86,7 +81,7 @@ impl Buckets {
     }
     fn get_fingerprint(&self, bucket_index: usize, entry_index: usize) -> u64 {
         let bit_offset =
-            self.bucket_bitwidth * bucket_index + 1 + entry_index * self.fingerprint_bitwidth;
+            self.bucket_bitwidth * bucket_index + self.fingerprint_bitwidth * entry_index;
         let base = bit_offset / 8;
         let mut offset = bit_offset % 8;
 
@@ -102,18 +97,6 @@ impl Buckets {
         }
         f & self.fingerprint_mask()
     }
-    fn insert_zero_fingerprint(&mut self, bucket_index: usize) {
-        let bit_offset = self.bucket_bitwidth * bucket_index;
-        let base = bit_offset / 8;
-        let offset = bit_offset % 8;
-        self.bytes[base] |= 1 << offset;
-    }
-    fn contains_zero_fingerprint(&self, bucket_index: usize) -> bool {
-        let bit_offset = self.bucket_bitwidth * bucket_index;
-        let base = bit_offset / 8;
-        let offset = bit_offset % 8;
-        ((self.bytes[base] >> offset) & 1) != 0
-    }
 }
 
 #[cfg(test)]
@@ -123,6 +106,6 @@ mod test {
     #[test]
     fn it_works() {
         let buckets = Buckets::new(8, 4, 1000);
-        assert_eq!(buckets.bits(), 33000);
+        assert_eq!(buckets.bits(), 32000);
     }
 }
