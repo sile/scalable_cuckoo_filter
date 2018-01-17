@@ -1,0 +1,8 @@
+[package]
+name = "scalable_cuckoo_filter"
+version = "0.1.0"
+authors = ["Takeru Ohta <phjgt308@gmail.com>"]
+
+[dependencies]
+rand = "0.4"
+siphasher = "0.2"
