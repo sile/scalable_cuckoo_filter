@@ -1,26 +1,28 @@
 use rand;
 
+use bits::Bits;
+
 #[derive(Debug)]
 pub struct Buckets {
     fingerprint_bitwidth: usize, // fingerprint length in bits
     entries_per_bucket: usize,   // number of entries per bucket
     bucket_bitwidth: usize,
-    bytes: Vec<u8>,
+    bits: Bits,
 }
 impl Buckets {
     pub fn new(fingerprint_bitwidth: usize, entries_per_bucket: usize, buckets: usize) -> Self {
         let bucket_bitwidth = fingerprint_bitwidth * entries_per_bucket;
         let buckets_bitwidth = bucket_bitwidth * buckets;
-        let bytes = vec![0; (buckets_bitwidth + 7) / 8];
+        let bits = Bits::new(buckets_bitwidth);
         Buckets {
             fingerprint_bitwidth,
             entries_per_bucket,
             bucket_bitwidth,
-            bytes,
+            bits,
         }
     }
     pub fn bits(&self) -> u64 {
-        self.bytes.len() as u64 * 8
+        self.bits.capacity() as u64
     }
 
     pub fn fingerprint_mask(&self) -> u64 {
@@ -61,41 +63,14 @@ impl Buckets {
         f
     }
 
-    fn set_fingerprint(&mut self, bucket_index: usize, entry_index: usize, mut fingerprint: u64) {
-        let bit_offset =
-            self.bucket_bitwidth * bucket_index + self.fingerprint_bitwidth * entry_index;
-        let base = bit_offset / 8;
-        let mut offset = bit_offset % 8;
-
-        let mut remaining_bits = self.fingerprint_bitwidth;
-        for b in &mut self.bytes[base..] {
-            *b ^= ((*b >> offset) & ((1 << remaining_bits) - 1)) << offset;
-            *b |= (fingerprint << offset) as u8;
-            if remaining_bits <= 8 - offset {
-                break;
-            }
-            remaining_bits -= 8 - offset;
-            fingerprint >>= 8 - offset;
-            offset = 0;
-        }
+    fn set_fingerprint(&mut self, bucket_index: usize, entry_index: usize, fingerprint: u64) {
+        let offset = self.bucket_bitwidth * bucket_index + self.fingerprint_bitwidth * entry_index;
+        self.bits
+            .set_uint(offset, self.fingerprint_bitwidth, fingerprint);
     }
     fn get_fingerprint(&self, bucket_index: usize, entry_index: usize) -> u64 {
-        let bit_offset =
-            self.bucket_bitwidth * bucket_index + self.fingerprint_bitwidth * entry_index;
-        let base = bit_offset / 8;
-        let mut offset = bit_offset % 8;
-
-        let mut f = 0;
-        let mut filled_bits = 0;
-        for &b in &self.bytes[base..] {
-            f |= (u64::from(b) >> offset) << filled_bits;
-            filled_bits += 8 - offset;
-            if filled_bits >= self.fingerprint_bitwidth {
-                break;
-            }
-            offset = 0;
-        }
-        f & self.fingerprint_mask()
+        let offset = self.bucket_bitwidth * bucket_index + self.fingerprint_bitwidth * entry_index;
+        self.bits.get_uint(offset, self.fingerprint_bitwidth)
     }
 }
 
