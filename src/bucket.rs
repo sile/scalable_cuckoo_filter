@@ -1,4 +1,4 @@
-use rand;
+use rand::Rng;
 
 use bits::Bits;
 
@@ -59,11 +59,18 @@ impl Buckets {
         false
     }
 
-    pub fn random_swap(&mut self, bucket_index: usize, fingerprint: u64) -> u64 {
+    pub fn random_swap<R: Rng>(
+        &mut self,
+        rng: &mut R,
+        bucket_index: usize,
+        fingerprint: u64,
+    ) -> u64 {
         debug_assert_ne!(fingerprint, 0);
-        let i = rand::random::<usize>() % self.entries_per_bucket;
+        let i = rng.gen_range(0, self.entries_per_bucket);
         let f = self.get_fingerprint(bucket_index, i);
         self.set_fingerprint(bucket_index, i, fingerprint);
+        debug_assert_eq!(fingerprint, self.get_fingerprint(bucket_index, i));
+        debug_assert_ne!(f, fingerprint);
         debug_assert_ne!(f, 0);
         f
     }
