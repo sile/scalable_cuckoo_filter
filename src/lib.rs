@@ -5,7 +5,7 @@ pub use hash::{DefaultHasher, Hasher};
 pub use scalable_cuckoo_filter::ScalableCuckooFilter;
 
 mod bits;
-mod bucket;
+mod buckets;
 mod cuckoo_filter;
 mod hash;
 mod scalable_cuckoo_filter;
