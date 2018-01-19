@@ -7,6 +7,8 @@ pub trait Hasher {
     fn hash<T: Hash + ?Sized>(&self, item: &T) -> u64;
 
     /// Calculates the fingerprint of `item`.
+    ///
+    /// This should return a hash value that differed from the result of `Hasher::hash` method.
     fn fingerprint<T: Hash + ?Sized>(&self, item: &T) -> u64;
 }
 
