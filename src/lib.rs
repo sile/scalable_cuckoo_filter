@@ -2,7 +2,7 @@ extern crate rand;
 extern crate siphasher;
 
 pub use hash::{DefaultHasher, Hasher};
-pub use scalable_cuckoo_filter::ScalableCuckooFilter;
+pub use scalable_cuckoo_filter::{ScalableCuckooFilter, ScalableCuckooFilterBuilder};
 
 mod bits;
 mod buckets;
