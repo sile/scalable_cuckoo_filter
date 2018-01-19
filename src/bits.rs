@@ -1,12 +1,12 @@
 #[derive(Debug)]
 pub struct Bits(Vec<u8>);
 impl Bits {
-    pub fn new(capacity: usize) -> Self {
-        Bits(vec![0; (capacity + 7) / 8])
+    pub fn new(size_hint: usize) -> Self {
+        Bits(vec![0; (size_hint + 7) / 8])
     }
 
     #[inline]
-    pub fn capacity(&self) -> usize {
+    pub fn len(&self) -> usize {
         self.0.len() * 8
     }
 
@@ -28,7 +28,7 @@ impl Bits {
     pub fn set_uint(&mut self, position: usize, mut size: usize, mut value: u64) {
         let mut offset = position % 8;
         for b in &mut self.0[position / 8..] {
-            let high = ((*b as u64 >> size) << size) as u8;
+            let high = ((u64::from(*b) >> size) << size) as u8;
             let middle = (value << offset) as u8;
             let low = *b & ((1 << offset) - 1);
             *b = high | middle | low;
@@ -51,7 +51,7 @@ mod test {
     #[test]
     fn it_works() {
         let mut bits = Bits::new(12345);
-        assert_eq!(bits.capacity(), 12352);
+        assert_eq!(bits.len(), 12352);
 
         assert_eq!(bits.get_uint(0, 1), 0);
         bits.set_uint(0, 1, 1);
