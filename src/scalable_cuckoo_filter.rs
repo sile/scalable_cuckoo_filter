@@ -32,8 +32,8 @@ impl<H: Hasher, R: Rng> ScalableCuckooFilterBuilder<H, R> {
     /// Sets the initial capacity (i.e., the number of estimated maximum items) of this filter.
     ///
     /// The default value is `100_000`.
-    pub fn initial_capacity(mut self, capacity: usize) -> Self {
-        self.initial_capacity = capacity;
+    pub fn initial_capacity(mut self, capacity_hint: usize) -> Self {
+        self.initial_capacity = capacity_hint;
         self
     }
 
@@ -98,25 +98,23 @@ impl<H: Hasher, R: Rng> ScalableCuckooFilterBuilder<H, R> {
 
     /// Builds a `ScalableCuckooFilter` instance.
     pub fn finish<T: Hash + ?Sized>(self) -> ScalableCuckooFilter<T, H, R> {
-        let initial_probability = self.false_positive_probability / 2.0;
-        let fingerprint_bitwidth = ((1.0 / initial_probability).log2()
-            + ((2 * self.entries_per_bucket) as f64).log2())
-            .ceil() as usize;
-        let filter = CuckooFilter::new(
-            fingerprint_bitwidth,
-            self.entries_per_bucket,
-            self.initial_capacity,
-            self.max_kicks,
-        );
-        ScalableCuckooFilter {
+        let mut filter = ScalableCuckooFilter {
             hasher: self.hasher,
             rng: self.rng,
             false_positive_probability: self.false_positive_probability,
-            capacity: self.initial_capacity,
-            filters: vec![filter],
+            entries_per_bucket: self.entries_per_bucket,
+            max_kicks: self.max_kicks,
+            filters: Vec::new(),
             item_count: 0,
             _item: PhantomData,
-        }
+        };
+        filter.grow(self.initial_capacity);
+        filter
+    }
+}
+impl Default for ScalableCuckooFilterBuilder {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
@@ -126,7 +124,8 @@ pub struct ScalableCuckooFilter<T: ?Sized, H = DefaultHasher, R = ThreadRng> {
     hasher: H,
     filters: Vec<CuckooFilter>,
     false_positive_probability: f64,
-    capacity: usize,
+    entries_per_bucket: usize,
+    max_kicks: usize,
     rng: R,
     item_count: usize,
     _item: PhantomData<T>,
@@ -137,31 +136,32 @@ impl<T: Hash + ?Sized> ScalableCuckooFilter<T> {
     /// This is equivalent to the following expression:
     ///
     /// ```
-    /// # use scalable_cuckoo_filter::ScalableCuckooFilterBuilder;
+    /// # use scalable_cuckoo_filter::{ScalableCuckooFilter, ScalableCuckooFilterBuilder};
     /// # let initial_capacity = 10;
     /// # let false_positive_probability = 0.1;
+    /// # let _: ScalableCuckooFilter<()> =
     /// ScalableCuckooFilterBuilder::new()
     ///     .initial_capacity(initial_capacity)
     ///     .false_positive_probability(false_positive_probability)
     ///     .finish()
     /// # ;
     /// ```
-    pub fn new(initial_capacity: usize, false_positive_probability: f64) -> Self {
+    pub fn new(initial_capacity_hint: usize, false_positive_probability: f64) -> Self {
         ScalableCuckooFilterBuilder::new()
-            .initial_capacity(initial_capacity)
+            .initial_capacity(initial_capacity_hint)
             .false_positive_probability(false_positive_probability)
             .finish()
     }
 }
 impl<T: Hash + ?Sized, H: Hasher, R: Rng> ScalableCuckooFilter<T, H, R> {
-    /// Returns the number of bits being used by this filter.
-    pub fn bits(&self) -> u64 {
-        self.filters.iter().map(|f| f.bits()).sum()
-    }
-
     /// Returns the approximate number of items inserted in this filter.
     pub fn len(&self) -> usize {
         self.item_count
+    }
+
+    /// Returns `true` if this filter contains no items, otherwise `false`.
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
     }
 
     /// Returns the capacity (i.e., the upper bound of acceptable items count) of this filter.
@@ -169,6 +169,11 @@ impl<T: Hash + ?Sized, H: Hasher, R: Rng> ScalableCuckooFilter<T, H, R> {
     /// "capacity" is upper bound of the number of items can be inserted into the filter without resizing.
     pub fn capacity(&self) -> usize {
         self.filters.iter().map(|f| f.entries()).sum()
+    }
+
+    /// Returns the number of bits being used for representing this filter.
+    pub fn bits(&self) -> u64 {
+        self.filters.iter().map(|f| f.bits()).sum()
     }
 
     /// Returns `true` if this filter may contain `item`, otherwise `false`.
@@ -190,42 +195,32 @@ impl<T: Hash + ?Sized, H: Hasher, R: Rng> ScalableCuckooFilter<T, H, R> {
         for (i, filter) in self.filters.iter_mut().enumerate() {
             if i == last {
                 if filter.try_insert(&self.hasher, &mut self.rng, item_hash, fingerprint) {
-                    return;
-                } else {
-                    break;
-                }
-            } else {
-                if filter.contains(&self.hasher, item_hash, fingerprint) {
+                    self.item_count += 1;
                     return;
                 }
+            } else if filter.contains(&self.hasher, item_hash, fingerprint) {
+                return;
             }
         }
 
-        self.capacity *= 2;
+        let next_filter_capacity = self.filters[last].entries() * 2;
+        self.grow(next_filter_capacity);
+        self.insert(item);
+    }
+
+    fn grow(&mut self, next_filter_capacity: usize) {
         let probability =
             self.false_positive_probability / 2f64.powi(self.filters.len() as i32 + 1);
-        let max_kicks = 512;
-        let entries_per_bucket = 4;
-        let fingerprint_bitwidth =
-            ((1.0 / probability).log2() + ((2 * entries_per_bucket) as f64).log2()).ceil() as usize;
-        let mut filter = CuckooFilter::new(
+        let fingerprint_bitwidth = ((1.0 / probability).log2()
+            + ((2 * self.entries_per_bucket) as f64).log2())
+            .ceil() as usize;
+        let filter = CuckooFilter::new(
             fingerprint_bitwidth,
-            entries_per_bucket,
-            self.capacity,
-            max_kicks,
+            self.entries_per_bucket,
+            next_filter_capacity,
+            self.max_kicks,
         );
-        assert!(filter.try_insert(&self.hasher, &mut self.rng, item_hash, fingerprint));
         self.filters.push(filter);
-    }
-    pub fn contains(&self, item: &T) -> bool {
-        let item_hash = self.hasher.hash(item);
-        let fingerprint = self.hasher.fingerprint(item);
-        self.filters
-            .iter()
-            .any(|f| f.contains(&self.hasher, item_hash, fingerprint))
-    }
-    pub fn bits(&self) -> u64 {
-        self.filters.iter().map(|f| f.bits()).sum()
     }
 }
 
@@ -236,6 +231,7 @@ mod test {
     #[test]
     fn it_works() {
         let mut filter = ScalableCuckooFilter::new(1000, 0.001);
+        assert!(filter.is_empty());
         assert_eq!(filter.bits(), 14_336);
 
         assert!(!filter.contains("foo"));
@@ -258,5 +254,6 @@ mod test {
             filter.insert(&i);
             assert!(filter.contains(&i));
         }
+        assert_eq!(filter.len(), 10_000);
     }
 }

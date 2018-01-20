@@ -36,6 +36,11 @@ impl Buckets {
     }
 
     #[inline]
+    pub fn entries(&self) -> usize {
+        self.len() * self.entries_per_bucket
+    }
+
+    #[inline]
     pub fn bits(&self) -> u64 {
         self.bits.len() as u64
     }

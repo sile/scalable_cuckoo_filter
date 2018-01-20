@@ -8,6 +8,7 @@ pub struct CuckooFilter {
     buckets: Buckets,
     max_kicks: usize,
     has_zero_fingerprint: bool,
+    kicked_fingerprint: Option<u64>,
 }
 impl CuckooFilter {
     pub fn new(
@@ -27,6 +28,7 @@ impl CuckooFilter {
             buckets,
             max_kicks,
             has_zero_fingerprint: false,
+            kicked_fingerprint: None,
         }
     }
 
@@ -36,8 +38,8 @@ impl CuckooFilter {
     }
 
     #[inline]
-    pub fn buckets(&self) -> usize {
-        self.buckets.len()
+    pub fn entries(&self) -> usize {
+        self.buckets.entries()
     }
 
     #[inline]
@@ -45,6 +47,9 @@ impl CuckooFilter {
         let fingerprint = fingerprint & self.buckets.fingerprint_mask();
         if fingerprint == 0 {
             return self.has_zero_fingerprint;
+        }
+        if Some(fingerprint) == self.kicked_fingerprint {
+            return true;
         }
 
         let i0 = item_hash as usize & self.buckets.index_mask();
@@ -65,39 +70,43 @@ impl CuckooFilter {
             self.has_zero_fingerprint = true;
             return true;
         }
+        if Some(fingerprint) == self.kicked_fingerprint {
+            return true;
+        }
 
         let i0 = item_hash as usize & self.buckets.index_mask();
         let i1 = (i0 ^ hasher.hash(&fingerprint) as usize) & self.buckets.index_mask();
         if self.buckets.contains(i0, fingerprint) || self.buckets.contains(i1, fingerprint) {
             true
+        } else if self.kicked_fingerprint.is_some() {
+            false
         } else {
-            self.try_insert_fingerprint(hasher, rng, i0, i1, fingerprint)
+            self.insert_fingerprint(hasher, rng, i0, i1, fingerprint);
+            true
         }
     }
 
     #[inline]
-    fn try_insert_fingerprint<H: Hasher, R: Rng>(
+    fn insert_fingerprint<H: Hasher, R: Rng>(
         &mut self,
         hasher: &H,
         rng: &mut R,
         i0: usize,
         i1: usize,
         mut fingerprint: u64,
-    ) -> bool {
-        if self.buckets.try_insert(i0, fingerprint) {
-            true
-        } else if self.buckets.try_insert(i1, fingerprint) {
-            true
-        } else {
-            let mut i = if rng.gen::<bool>() { i0 } else { i1 };
-            for _ in 0..self.max_kicks {
-                fingerprint = self.buckets.random_swap(rng, i, fingerprint);
-                i = (i ^ hasher.hash(&fingerprint) as usize) & self.buckets.index_mask();
-                if self.buckets.try_insert(i, fingerprint) {
-                    return true;
-                }
-            }
-            false
+    ) {
+        if self.buckets.try_insert(i0, fingerprint) || self.buckets.try_insert(i1, fingerprint) {
+            return;
         }
+
+        let mut i = if rng.gen::<bool>() { i0 } else { i1 };
+        for _ in 0..self.max_kicks {
+            fingerprint = self.buckets.random_swap(rng, i, fingerprint);
+            i = (i ^ hasher.hash(&fingerprint) as usize) & self.buckets.index_mask();
+            if self.buckets.try_insert(i, fingerprint) {
+                return;
+            }
+        }
+        self.kicked_fingerprint = Some(fingerprint);
     }
 }
