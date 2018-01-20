@@ -6,9 +6,15 @@ use rand::{self, Rng, ThreadRng};
 use hash;
 use cuckoo_filter::CuckooFilter;
 
+/// Default Hasher.
+pub type DefaultHasher = SipHasher13;
+
+/// Default random number generator.
+pub type DefaultRng = ThreadRng;
+
 /// Builder for `ScalableCuckooFilter`.
 #[derive(Debug)]
-pub struct ScalableCuckooFilterBuilder<H = SipHasher13, R = ThreadRng> {
+pub struct ScalableCuckooFilterBuilder<H = DefaultHasher, R = DefaultRng> {
     initial_capacity: usize,
     false_positive_probability: f64,
     entries_per_bucket: usize,
@@ -16,7 +22,7 @@ pub struct ScalableCuckooFilterBuilder<H = SipHasher13, R = ThreadRng> {
     hasher: H,
     rng: R,
 }
-impl ScalableCuckooFilterBuilder<SipHasher13, ThreadRng> {
+impl ScalableCuckooFilterBuilder<DefaultHasher, DefaultRng> {
     /// Makes a new `ScalableCuckooFilterBuilder` instance.
     pub fn new() -> Self {
         ScalableCuckooFilterBuilder {
@@ -71,7 +77,7 @@ impl<H: Hasher + Clone, R: Rng> ScalableCuckooFilterBuilder<H, R> {
 
     /// Sets the hasher of this filter.
     ///
-    /// The default value if `SipHasher13::new()`.
+    /// The default value if `DefaultHasher::new()`.
     pub fn hasher<T: Hasher + Clone>(self, hasher: T) -> ScalableCuckooFilterBuilder<T, R> {
         ScalableCuckooFilterBuilder {
             initial_capacity: self.initial_capacity,
@@ -121,7 +127,7 @@ impl Default for ScalableCuckooFilterBuilder {
 
 /// Scalable Cuckoo Filter.
 #[derive(Debug)]
-pub struct ScalableCuckooFilter<T: ?Sized, H = SipHasher13, R = ThreadRng> {
+pub struct ScalableCuckooFilter<T: ?Sized, H = DefaultHasher, R = DefaultRng> {
     hasher: H,
     filters: Vec<CuckooFilter>,
     initial_capacity: usize,

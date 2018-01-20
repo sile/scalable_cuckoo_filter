@@ -58,7 +58,8 @@
 extern crate rand;
 extern crate siphasher;
 
-pub use scalable_cuckoo_filter::{ScalableCuckooFilter, ScalableCuckooFilterBuilder};
+pub use scalable_cuckoo_filter::{DefaultHasher, DefaultRng, ScalableCuckooFilter,
+                                 ScalableCuckooFilterBuilder};
 
 mod bits;
 mod buckets;
