@@ -102,14 +102,14 @@ impl<H: Hasher + Clone, R: Rng> ScalableCuckooFilterBuilder<H, R> {
         let mut filter = ScalableCuckooFilter {
             hasher: self.hasher,
             rng: self.rng,
+            initial_capacity: self.initial_capacity,
             false_positive_probability: self.false_positive_probability,
             entries_per_bucket: self.entries_per_bucket,
             max_kicks: self.max_kicks,
             filters: Vec::new(),
-            item_count: 0,
             _item: PhantomData,
         };
-        filter.grow(self.initial_capacity);
+        filter.grow();
         filter
     }
 }
@@ -124,11 +124,11 @@ impl Default for ScalableCuckooFilterBuilder {
 pub struct ScalableCuckooFilter<T: ?Sized, H = SipHasher13, R = ThreadRng> {
     hasher: H,
     filters: Vec<CuckooFilter>,
+    initial_capacity: usize,
     false_positive_probability: f64,
     entries_per_bucket: usize,
     max_kicks: usize,
     rng: R,
-    item_count: usize,
     _item: PhantomData<T>,
 }
 impl<T: Hash + ?Sized> ScalableCuckooFilter<T> {
@@ -157,7 +157,7 @@ impl<T: Hash + ?Sized> ScalableCuckooFilter<T> {
 impl<T: Hash + ?Sized, H: Hasher + Clone, R: Rng> ScalableCuckooFilter<T, H, R> {
     /// Returns the approximate number of items inserted in this filter.
     pub fn len(&self) -> usize {
-        self.item_count
+        self.filters.iter().map(|f| f.len()).sum()
     }
 
     /// Returns `true` if this filter contains no items, otherwise `false`.
@@ -169,7 +169,7 @@ impl<T: Hash + ?Sized, H: Hasher + Clone, R: Rng> ScalableCuckooFilter<T, H, R> 
     ///
     /// "capacity" is upper bound of the number of items can be inserted into the filter without resizing.
     pub fn capacity(&self) -> usize {
-        self.filters.iter().map(|f| f.entries()).sum()
+        self.filters.iter().map(|f| f.capacity()).sum()
     }
 
     /// Returns the number of bits being used for representing this filter.
@@ -191,23 +191,27 @@ impl<T: Hash + ?Sized, H: Hasher + Clone, R: Rng> ScalableCuckooFilter<T, H, R> 
     pub fn insert(&mut self, item: &T) {
         let item_hash = hash(&self.hasher, item);
         let last = self.filters.len() - 1;
-        for (i, filter) in self.filters.iter_mut().enumerate() {
-            if i == last {
-                if filter.try_insert(&self.hasher, &mut self.rng, item_hash) {
-                    self.item_count += 1;
-                    return;
-                }
-            } else if filter.contains(&self.hasher, item_hash) {
+        for filter in self.filters.iter().take(last) {
+            if filter.contains(&self.hasher, item_hash) {
                 return;
             }
         }
 
-        let next_filter_capacity = self.filters[last].entries() * 2;
-        self.grow(next_filter_capacity);
-        self.insert(item);
+        self.filters[last].insert(&self.hasher, &mut self.rng, item_hash);
+        if self.filters[last].is_nearly_full() {
+            self.grow();
+        }
     }
 
-    fn grow(&mut self, next_filter_capacity: usize) {
+    /// Shrinks the capacity of this filter as much as possible.
+    pub fn shrink_to_fit(&mut self) {
+        for f in &mut self.filters {
+            f.shrink_to_fit(&self.hasher, &mut self.rng);
+        }
+    }
+
+    fn grow(&mut self) {
+        let capacity = self.initial_capacity * 2usize.pow(self.filters.len() as u32);
         let probability =
             self.false_positive_probability / 2f64.powi(self.filters.len() as i32 + 1);
         let fingerprint_bitwidth = ((1.0 / probability).log2()
@@ -216,7 +220,7 @@ impl<T: Hash + ?Sized, H: Hasher + Clone, R: Rng> ScalableCuckooFilter<T, H, R> 
         let filter = CuckooFilter::new(
             fingerprint_bitwidth,
             self.entries_per_bucket,
-            next_filter_capacity,
+            capacity,
             self.max_kicks,
         );
         self.filters.push(filter);
@@ -254,5 +258,22 @@ mod test {
             assert!(filter.contains(&i));
         }
         assert_eq!(filter.len(), 10_000);
+    }
+
+    #[test]
+    fn shrink_to_fit_works() {
+        let mut filter = ScalableCuckooFilter::new(1000, 0.001);
+        for i in 0..100 {
+            filter.insert(&i);
+        }
+        assert_eq!(filter.capacity(), 1024);
+        assert_eq!(filter.bits(), 14336);
+
+        filter.shrink_to_fit();
+        for i in 0..100 {
+            assert!(filter.contains(&i));
+        }
+        assert_eq!(filter.capacity(), 128);
+        assert_eq!(filter.bits(), 1792);
     }
 }

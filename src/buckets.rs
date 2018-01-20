@@ -16,9 +16,8 @@ impl Buckets {
         entries_per_bucket: usize,
         number_of_buckets_hint: usize,
     ) -> Self {
-        let bucket_index_bitwidth = (0..)
-            .find(|i| number_of_buckets_hint <= (1usize << i))
-            .expect("Never fails");
+        let bucket_index_bitwidth =
+            number_of_buckets_hint.next_power_of_two().trailing_zeros() as usize;
         let bucket_bitwidth = fingerprint_bitwidth * entries_per_bucket;
         let bits = Bits::new(bucket_bitwidth << bucket_index_bitwidth);
         Buckets {
@@ -28,6 +27,11 @@ impl Buckets {
             bucket_index_bitwidth,
             bits,
         }
+    }
+
+    #[inline]
+    pub fn required_number_of_buckets(number_of_buckets_hint: usize) -> usize {
+        number_of_buckets_hint.next_power_of_two()
     }
 
     #[inline]
@@ -53,6 +57,21 @@ impl Buckets {
     #[inline]
     pub fn fingerprint(&self, hash: u64) -> u64 {
         hash >> (64 - self.fingerprint_bitwidth)
+    }
+
+    #[inline]
+    pub fn entries_per_bucket(&self) -> usize {
+        self.entries_per_bucket
+    }
+
+    #[inline]
+    pub fn fingerprint_bitwidth(&self) -> usize {
+        self.fingerprint_bitwidth
+    }
+
+    #[inline]
+    pub fn iter(&self) -> Iter {
+        Iter::new(self)
     }
 
     #[inline]
@@ -112,6 +131,44 @@ impl Buckets {
     fn get_fingerprint(&self, bucket_index: usize, entry_index: usize) -> u64 {
         let offset = self.bucket_bitwidth * bucket_index + self.fingerprint_bitwidth * entry_index;
         self.bits.get_uint(offset, self.fingerprint_bitwidth)
+    }
+}
+
+#[derive(Debug)]
+pub struct Iter<'a> {
+    buckets: &'a Buckets,
+    bucket_i: usize,
+    entry_i: usize,
+}
+impl<'a> Iter<'a> {
+    fn new(buckets: &'a Buckets) -> Self {
+        Iter {
+            buckets,
+            bucket_i: 0,
+            entry_i: 0,
+        }
+    }
+}
+impl<'a> Iterator for Iter<'a> {
+    type Item = (usize, u64);
+    fn next(&mut self) -> Option<Self::Item> {
+        loop {
+            if self.bucket_i == self.buckets.len() {
+                return None;
+            } else if self.entry_i == self.buckets.entries_per_bucket {
+                self.bucket_i += 1;
+                self.entry_i = 0;
+            } else {
+                let f = self.buckets.get_fingerprint(self.bucket_i, self.entry_i);
+                if f == 0 {
+                    self.bucket_i += 1;
+                    self.entry_i = 0;
+                } else {
+                    self.entry_i += 1;
+                    return Some((self.bucket_i, f));
+                }
+            }
+        }
     }
 }
 
