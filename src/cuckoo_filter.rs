@@ -1,6 +1,7 @@
+use std::hash::Hasher;
 use rand::Rng;
 
-use Hasher;
+use hash;
 use buckets::Buckets;
 
 #[derive(Debug)]
@@ -43,8 +44,8 @@ impl CuckooFilter {
     }
 
     #[inline]
-    pub fn contains<H: Hasher>(&self, hasher: &H, item_hash: u64, fingerprint: u64) -> bool {
-        let fingerprint = fingerprint & self.buckets.fingerprint_mask();
+    pub fn contains<H: Hasher + Clone>(&self, hasher: &H, item_hash: u64) -> bool {
+        let fingerprint = self.buckets.fingerprint(item_hash);
         if fingerprint == 0 {
             return self.has_zero_fingerprint;
         }
@@ -52,20 +53,19 @@ impl CuckooFilter {
             return true;
         }
 
-        let i0 = item_hash as usize & self.buckets.index_mask();
-        let i1 = (i0 ^ hasher.hash(&fingerprint) as usize) & self.buckets.index_mask();
+        let i0 = self.buckets.index(item_hash);
+        let i1 = self.buckets.index(i0 as u64 ^ hash(hasher, &fingerprint));
         self.buckets.contains(i0, fingerprint) || self.buckets.contains(i1, fingerprint)
     }
 
     #[inline]
-    pub fn try_insert<H: Hasher, R: Rng>(
+    pub fn try_insert<H: Hasher + Clone, R: Rng>(
         &mut self,
         hasher: &H,
         rng: &mut R,
         item_hash: u64,
-        fingerprint: u64,
     ) -> bool {
-        let fingerprint = fingerprint & self.buckets.fingerprint_mask();
+        let fingerprint = self.buckets.fingerprint(item_hash);
         if fingerprint == 0 {
             self.has_zero_fingerprint = true;
             return true;
@@ -74,8 +74,8 @@ impl CuckooFilter {
             return true;
         }
 
-        let i0 = item_hash as usize & self.buckets.index_mask();
-        let i1 = (i0 ^ hasher.hash(&fingerprint) as usize) & self.buckets.index_mask();
+        let i0 = self.buckets.index(item_hash);
+        let i1 = self.buckets.index(i0 as u64 ^ hash(hasher, &fingerprint));
         if self.buckets.contains(i0, fingerprint) || self.buckets.contains(i1, fingerprint) {
             true
         } else if self.kicked_fingerprint.is_some() {
@@ -87,7 +87,7 @@ impl CuckooFilter {
     }
 
     #[inline]
-    fn insert_fingerprint<H: Hasher, R: Rng>(
+    fn insert_fingerprint<H: Hasher + Clone, R: Rng>(
         &mut self,
         hasher: &H,
         rng: &mut R,
@@ -102,7 +102,7 @@ impl CuckooFilter {
         let mut i = if rng.gen::<bool>() { i0 } else { i1 };
         for _ in 0..self.max_kicks {
             fingerprint = self.buckets.random_swap(rng, i, fingerprint);
-            i = (i ^ hasher.hash(&fingerprint) as usize) & self.buckets.index_mask();
+            i = self.buckets.index(i as u64 ^ hash(hasher, &fingerprint));
             if self.buckets.try_insert(i, fingerprint) {
                 return;
             }

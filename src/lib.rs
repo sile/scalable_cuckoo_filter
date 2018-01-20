@@ -38,11 +38,16 @@
 extern crate rand;
 extern crate siphasher;
 
-pub use hash::{DefaultHasher, Hasher};
 pub use scalable_cuckoo_filter::{ScalableCuckooFilter, ScalableCuckooFilterBuilder};
 
 mod bits;
 mod buckets;
 mod cuckoo_filter;
-mod hash;
 mod scalable_cuckoo_filter;
+
+#[inline]
+fn hash<T: ?Sized + std::hash::Hash, H: std::hash::Hasher + Clone>(hasher: &H, item: &T) -> u64 {
+    let mut hasher = hasher.clone();
+    item.hash(&mut hasher);
+    hasher.finish()
+}

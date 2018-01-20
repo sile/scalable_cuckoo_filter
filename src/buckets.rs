@@ -46,13 +46,13 @@ impl Buckets {
     }
 
     #[inline]
-    pub fn index_mask(&self) -> usize {
-        (1 << self.bucket_index_bitwidth) - 1
+    pub fn index(&self, hash: u64) -> usize {
+        (hash & ((1 << self.bucket_index_bitwidth) - 1)) as usize
     }
 
     #[inline]
-    pub fn fingerprint_mask(&self) -> u64 {
-        (1 << self.fingerprint_bitwidth) - 1
+    pub fn fingerprint(&self, hash: u64) -> u64 {
+        hash >> (64 - self.fingerprint_bitwidth)
     }
 
     #[inline]

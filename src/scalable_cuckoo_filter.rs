@@ -1,13 +1,14 @@
-use std::hash::Hash;
+use std::hash::{Hash, Hasher};
 use std::marker::PhantomData;
+use siphasher::sip::SipHasher13;
 use rand::{self, Rng, ThreadRng};
 
-use {DefaultHasher, Hasher};
+use hash;
 use cuckoo_filter::CuckooFilter;
 
 /// Builder for `ScalableCuckooFilter`.
 #[derive(Debug)]
-pub struct ScalableCuckooFilterBuilder<H = DefaultHasher, R = ThreadRng> {
+pub struct ScalableCuckooFilterBuilder<H = SipHasher13, R = ThreadRng> {
     initial_capacity: usize,
     false_positive_probability: f64,
     entries_per_bucket: usize,
@@ -15,7 +16,7 @@ pub struct ScalableCuckooFilterBuilder<H = DefaultHasher, R = ThreadRng> {
     hasher: H,
     rng: R,
 }
-impl ScalableCuckooFilterBuilder<DefaultHasher, ThreadRng> {
+impl ScalableCuckooFilterBuilder<SipHasher13, ThreadRng> {
     /// Makes a new `ScalableCuckooFilterBuilder` instance.
     pub fn new() -> Self {
         ScalableCuckooFilterBuilder {
@@ -23,12 +24,12 @@ impl ScalableCuckooFilterBuilder<DefaultHasher, ThreadRng> {
             false_positive_probability: 0.001,
             entries_per_bucket: 4,
             max_kicks: 512,
-            hasher: DefaultHasher,
+            hasher: SipHasher13::new(),
             rng: rand::thread_rng(),
         }
     }
 }
-impl<H: Hasher, R: Rng> ScalableCuckooFilterBuilder<H, R> {
+impl<H: Hasher + Clone, R: Rng> ScalableCuckooFilterBuilder<H, R> {
     /// Sets the initial capacity (i.e., the number of estimated maximum items) of this filter.
     ///
     /// The default value is `100_000`.
@@ -70,8 +71,8 @@ impl<H: Hasher, R: Rng> ScalableCuckooFilterBuilder<H, R> {
 
     /// Sets the hasher of this filter.
     ///
-    /// The default value if `DefaultHasher`.
-    pub fn hasher<T: Hasher>(self, hasher: T) -> ScalableCuckooFilterBuilder<T, R> {
+    /// The default value if `SipHasher13::new()`.
+    pub fn hasher<T: Hasher + Clone>(self, hasher: T) -> ScalableCuckooFilterBuilder<T, R> {
         ScalableCuckooFilterBuilder {
             initial_capacity: self.initial_capacity,
             false_positive_probability: self.false_positive_probability,
@@ -120,7 +121,7 @@ impl Default for ScalableCuckooFilterBuilder {
 
 /// Scalable Cuckoo Filter.
 #[derive(Debug)]
-pub struct ScalableCuckooFilter<T: ?Sized, H = DefaultHasher, R = ThreadRng> {
+pub struct ScalableCuckooFilter<T: ?Sized, H = SipHasher13, R = ThreadRng> {
     hasher: H,
     filters: Vec<CuckooFilter>,
     false_positive_probability: f64,
@@ -153,7 +154,7 @@ impl<T: Hash + ?Sized> ScalableCuckooFilter<T> {
             .finish()
     }
 }
-impl<T: Hash + ?Sized, H: Hasher, R: Rng> ScalableCuckooFilter<T, H, R> {
+impl<T: Hash + ?Sized, H: Hasher + Clone, R: Rng> ScalableCuckooFilter<T, H, R> {
     /// Returns the approximate number of items inserted in this filter.
     pub fn len(&self) -> usize {
         self.item_count
@@ -178,27 +179,25 @@ impl<T: Hash + ?Sized, H: Hasher, R: Rng> ScalableCuckooFilter<T, H, R> {
 
     /// Returns `true` if this filter may contain `item`, otherwise `false`.
     pub fn contains(&self, item: &T) -> bool {
-        let item_hash = self.hasher.hash(item);
-        let fingerprint = self.hasher.fingerprint(item);
+        let item_hash = hash(&self.hasher, item);
         self.filters
             .iter()
-            .any(|f| f.contains(&self.hasher, item_hash, fingerprint))
+            .any(|f| f.contains(&self.hasher, item_hash))
     }
 
     /// Inserts `item` into this filter.
     ///
     /// If the current filter becomes full, it will be expanded automatically.
     pub fn insert(&mut self, item: &T) {
-        let item_hash = self.hasher.hash(item);
-        let fingerprint = self.hasher.fingerprint(item);
+        let item_hash = hash(&self.hasher, item);
         let last = self.filters.len() - 1;
         for (i, filter) in self.filters.iter_mut().enumerate() {
             if i == last {
-                if filter.try_insert(&self.hasher, &mut self.rng, item_hash, fingerprint) {
+                if filter.try_insert(&self.hasher, &mut self.rng, item_hash) {
                     self.item_count += 1;
                     return;
                 }
-            } else if filter.contains(&self.hasher, item_hash, fingerprint) {
+            } else if filter.contains(&self.hasher, item_hash) {
                 return;
             }
         }
