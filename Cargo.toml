@@ -15,5 +15,5 @@ travis-ci = {repository = "sile/scalable_cuckoo_filter"}
 codecov = {repository = "sile/scalable_cuckoo_filter"}
 
 [dependencies]
-rand = "0.4"
+rand = "0.5"
 siphasher = "0.2"

@@ -1,10 +1,10 @@
+use rand::{self, Rng, ThreadRng};
+use siphasher::sip::SipHasher13;
 use std::hash::{Hash, Hasher};
 use std::marker::PhantomData;
-use siphasher::sip::SipHasher13;
-use rand::{self, Rng, ThreadRng};
 
-use hash;
 use cuckoo_filter::CuckooFilter;
+use hash;
 
 /// Default Hasher.
 pub type DefaultHasher = SipHasher13;
@@ -252,7 +252,12 @@ mod test {
     fn insert_works() {
         use rand::{SeedableRng, StdRng};
 
-        let rng: StdRng = SeedableRng::from_seed(&[1, 2, 3, 4][..]);
+        let mut seed = [0; 32];
+        for i in 0..seed.len() {
+            seed[i] = i as u8;
+        }
+
+        let rng: StdRng = SeedableRng::from_seed(seed);
         let mut filter = ScalableCuckooFilterBuilder::new()
             .initial_capacity(100)
             .false_positive_probability(0.00001)
