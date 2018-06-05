@@ -1,10 +1,10 @@
+use rand::Rng;
 use std::cmp;
 use std::hash::Hasher;
 use std::mem;
-use rand::Rng;
 
-use hash;
 use buckets::Buckets;
+use hash;
 
 #[derive(Debug)]
 pub struct CuckooFilter {

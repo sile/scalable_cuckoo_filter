@@ -174,8 +174,8 @@ impl<'a> Iterator for Iter<'a> {
 
 #[cfg(test)]
 mod test {
-    use rand;
     use super::*;
+    use rand;
 
     #[test]
     fn it_works() {
