@@ -5,7 +5,11 @@ use std::mem;
 
 use crate::buckets::Buckets;
 
+#[cfg(feature = "serde")]
+use serde::{Deserialize, Serialize};
+
 #[derive(Debug)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct CuckooFilter {
     buckets: Buckets,
     max_kicks: usize,
@@ -146,6 +150,7 @@ impl CuckooFilter {
 }
 
 #[derive(Debug)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 struct ExceptionalItems(Vec<(u64, usize)>);
 impl ExceptionalItems {
     fn new() -> Self {

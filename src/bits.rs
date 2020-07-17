@@ -1,5 +1,9 @@
+#[cfg(feature = "serde_support")]
+use serde::{Deserialize, Serialize};
+
 #[derive(Debug)]
-pub struct Bits(Vec<u8>);
+#[cfg_attr(feature = "serde_support", derive(Serialize, Deserialize))]
+pub struct Bits(#[cfg_attr(feature = "serde_support", serde(with = "serde_bytes"))] Vec<u8>);
 impl Bits {
     pub fn new(size_hint: usize) -> Self {
         Bits(vec![0; (size_hint + 7) / 8])

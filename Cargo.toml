@@ -11,6 +11,9 @@ keywords = ["cuckoo-filter", "bloom-filter"]
 categories = ["data-structures"]
 license = "MIT"
 
+[features]
+serde_support = ["serde","serde_bytes"]
+
 [badges]
 travis-ci = {repository = "sile/scalable_cuckoo_filter"}
 codecov = {repository = "sile/scalable_cuckoo_filter"}
@@ -18,3 +21,8 @@ codecov = {repository = "sile/scalable_cuckoo_filter"}
 [dependencies]
 rand = "0.7"
 siphasher = "0.3"
+serde = { version = "1.0", default-features = false, optional = true, features = ["derive"] }
+serde_bytes = { version = "0.11", optional = true }
+
+[dev-dependencies]
+serde_json = "1.0"

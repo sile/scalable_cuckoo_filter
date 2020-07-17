@@ -124,15 +124,21 @@ impl Default for ScalableCuckooFilterBuilder {
     }
 }
 
+#[cfg(feature = "serde_support")]
+use serde::{Deserialize, Serialize};
+
 /// Scalable Cuckoo Filter.
 #[derive(Debug)]
+#[cfg_attr(feature = "serde_support", derive(Serialize, Deserialize))]
 pub struct ScalableCuckooFilter<T: ?Sized, H = DefaultHasher, R = DefaultRng> {
+    #[cfg_attr(feature = "serde_support", serde(skip))]
     hasher: H,
     filters: Vec<CuckooFilter>,
     initial_capacity: usize,
     false_positive_probability: f64,
     entries_per_bucket: usize,
     max_kicks: usize,
+    #[cfg_attr(feature = "serde_support", serde(skip))]
     rng: R,
     _item: PhantomData<T>,
 }
@@ -285,5 +291,23 @@ mod test {
         }
         assert_eq!(filter.capacity(), 128);
         assert_eq!(filter.bits(), 1792);
+    }
+
+    #[cfg(feature = "serde_support")]
+    use serde_json;
+    #[test]
+    #[cfg(feature = "serde_support")]
+    fn serialize_dezerialize_works() {
+        let mut filter = ScalableCuckooFilter::new(1000, 0.001);
+        for i in 0..100 {
+            filter.insert(&i);
+        }
+        filter.shrink_to_fit();
+        let serialized = serde_json::to_string(&filter).unwrap();
+        let deserialized: ScalableCuckooFilter<usize> = serde_json::from_str(&serialized).unwrap();
+        for i in 0..100 {
+            assert!(filter.contains(&i));
+            assert!(deserialized.contains(&i));
+        }
     }
 }
