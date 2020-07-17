@@ -1,6 +1,6 @@
 use rand::Rng;
 
-use bits::Bits;
+use crate::bits::Bits;
 
 #[derive(Debug)]
 pub struct Buckets {

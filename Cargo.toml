@@ -1,5 +1,6 @@
 [package]
 name = "scalable_cuckoo_filter"
+edition = "2018"
 version = "0.1.2"
 authors = ["Takeru Ohta <phjgt308@gmail.com>"]
 description = "A variant of Cuckoo Filter whose size automatically scales as necessary"
@@ -15,5 +16,5 @@ travis-ci = {repository = "sile/scalable_cuckoo_filter"}
 codecov = {repository = "sile/scalable_cuckoo_filter"}
 
 [dependencies]
-rand = "0.5"
-siphasher = "0.2"
+rand = "0.7"
+siphasher = "0.3"

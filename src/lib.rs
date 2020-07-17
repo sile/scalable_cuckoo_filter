@@ -55,11 +55,10 @@
 //! [cuckoo filter]: https://www.cs.cmu.edu/~dga/papers/cuckoo-conext2014.pdf
 //! [scalable bloom filters]: http://haslab.uminho.pt/cbm/files/dbloom.pdf
 #![warn(missing_docs)]
-extern crate rand;
-extern crate siphasher;
 
-pub use scalable_cuckoo_filter::{DefaultHasher, DefaultRng, ScalableCuckooFilter,
-                                 ScalableCuckooFilterBuilder};
+pub use crate::scalable_cuckoo_filter::{
+    DefaultHasher, DefaultRng, ScalableCuckooFilter, ScalableCuckooFilterBuilder,
+};
 
 mod bits;
 mod buckets;
