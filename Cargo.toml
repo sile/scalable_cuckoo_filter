@@ -1,7 +1,7 @@
 [package]
 name = "scalable_cuckoo_filter"
 edition = "2018"
-version = "0.1.2"
+version = "0.1.3"
 authors = ["Takeru Ohta <phjgt308@gmail.com>"]
 description = "A variant of Cuckoo Filter whose size automatically scales as necessary"
 homepage = "https://github.com/sile/scalable_cuckoo_filter"
@@ -19,7 +19,7 @@ travis-ci = {repository = "sile/scalable_cuckoo_filter"}
 codecov = {repository = "sile/scalable_cuckoo_filter"}
 
 [dependencies]
-rand = "0.7"
+rand = "0.8"
 siphasher = "0.3"
 serde = { version = "1.0", default-features = false, optional = true, features = ["derive"] }
 serde_bytes = { version = "0.11", optional = true }
