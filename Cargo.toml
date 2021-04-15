@@ -15,8 +15,7 @@ license = "MIT"
 serde_support = ["serde","serde_bytes"]
 
 [badges]
-travis-ci = {repository = "sile/scalable_cuckoo_filter"}
-codecov = {repository = "sile/scalable_cuckoo_filter"}
+coveralls = {repository = "sile/scalable_cuckoo_filter"}
 
 [dependencies]
 rand = "0.8"
