@@ -3,10 +3,13 @@ use std::cmp;
 use std::hash::Hasher;
 use std::mem;
 
-use buckets::Buckets;
-use hash;
+use crate::buckets::Buckets;
+
+#[cfg(feature = "serde")]
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct CuckooFilter {
     buckets: Buckets,
     max_kicks: usize,
@@ -59,7 +62,9 @@ impl CuckooFilter {
     pub fn contains<H: Hasher + Clone>(&self, hasher: &H, item_hash: u64) -> bool {
         let fingerprint = self.buckets.fingerprint(item_hash);
         let i0 = self.buckets.index(item_hash);
-        let i1 = self.buckets.index(i0 as u64 ^ hash(hasher, &fingerprint));
+        let i1 = self
+            .buckets
+            .index(i0 as u64 ^ crate::hash(hasher, &fingerprint));
         self.contains_fingerprint(i0, i1, fingerprint)
     }
 
@@ -111,7 +116,9 @@ impl CuckooFilter {
         i0: usize,
         fingerprint: u64,
     ) {
-        let i1 = self.buckets.index(i0 as u64 ^ hash(hasher, &fingerprint));
+        let i1 = self
+            .buckets
+            .index(i0 as u64 ^ crate::hash(hasher, &fingerprint));
         if self.contains_fingerprint(i0, i1, fingerprint) {
             return;
         }
@@ -131,7 +138,9 @@ impl CuckooFilter {
         for _ in 0..self.max_kicks {
             fingerprint = self.buckets.random_swap(rng, i, fingerprint);
             prev_i = i;
-            i = self.buckets.index(i as u64 ^ hash(hasher, &fingerprint));
+            i = self
+                .buckets
+                .index(i as u64 ^ crate::hash(hasher, &fingerprint));
             if self.buckets.try_insert(i, fingerprint) {
                 return;
             }
@@ -141,6 +150,7 @@ impl CuckooFilter {
 }
 
 #[derive(Debug)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 struct ExceptionalItems(Vec<(u64, usize)>);
 impl ExceptionalItems {
     fn new() -> Self {

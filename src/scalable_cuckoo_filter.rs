@@ -1,10 +1,9 @@
-use rand::{self, Rng, ThreadRng};
+use rand::{rngs::ThreadRng, Rng};
 use siphasher::sip::SipHasher13;
 use std::hash::{Hash, Hasher};
 use std::marker::PhantomData;
 
-use cuckoo_filter::CuckooFilter;
-use hash;
+use crate::cuckoo_filter::CuckooFilter;
 
 /// Default Hasher.
 pub type DefaultHasher = SipHasher13;
@@ -125,15 +124,21 @@ impl Default for ScalableCuckooFilterBuilder {
     }
 }
 
+#[cfg(feature = "serde_support")]
+use serde::{Deserialize, Serialize};
+
 /// Scalable Cuckoo Filter.
 #[derive(Debug)]
+#[cfg_attr(feature = "serde_support", derive(Serialize, Deserialize))]
 pub struct ScalableCuckooFilter<T: ?Sized, H = DefaultHasher, R = DefaultRng> {
+    #[cfg_attr(feature = "serde_support", serde(skip))]
     hasher: H,
     filters: Vec<CuckooFilter>,
     initial_capacity: usize,
     false_positive_probability: f64,
     entries_per_bucket: usize,
     max_kicks: usize,
+    #[cfg_attr(feature = "serde_support", serde(skip))]
     rng: R,
     _item: PhantomData<T>,
 }
@@ -185,7 +190,7 @@ impl<T: Hash + ?Sized, H: Hasher + Clone, R: Rng> ScalableCuckooFilter<T, H, R> 
 
     /// Returns `true` if this filter may contain `item`, otherwise `false`.
     pub fn contains(&self, item: &T) -> bool {
-        let item_hash = hash(&self.hasher, item);
+        let item_hash = crate::hash(&self.hasher, item);
         self.filters
             .iter()
             .any(|f| f.contains(&self.hasher, item_hash))
@@ -195,7 +200,7 @@ impl<T: Hash + ?Sized, H: Hasher + Clone, R: Rng> ScalableCuckooFilter<T, H, R> 
     ///
     /// If the current filter becomes full, it will be expanded automatically.
     pub fn insert(&mut self, item: &T) {
-        let item_hash = hash(&self.hasher, item);
+        let item_hash = crate::hash(&self.hasher, item);
         let last = self.filters.len() - 1;
         for filter in self.filters.iter().take(last) {
             if filter.contains(&self.hasher, item_hash) {
@@ -222,7 +227,7 @@ impl<T: Hash + ?Sized, H: Hasher + Clone, R: Rng> ScalableCuckooFilter<T, H, R> 
             self.false_positive_probability / 2f64.powi(self.filters.len() as i32 + 1);
         let fingerprint_bitwidth = ((1.0 / probability).log2()
             + ((2 * self.entries_per_bucket) as f64).log2())
-            .ceil() as usize;
+        .ceil() as usize;
         let filter = CuckooFilter::new(
             fingerprint_bitwidth,
             self.entries_per_bucket,
@@ -250,7 +255,7 @@ mod test {
 
     #[test]
     fn insert_works() {
-        use rand::{SeedableRng, StdRng};
+        use rand::{rngs::StdRng, SeedableRng};
 
         let mut seed = [0; 32];
         for i in 0..seed.len() {
@@ -286,5 +291,23 @@ mod test {
         }
         assert_eq!(filter.capacity(), 128);
         assert_eq!(filter.bits(), 1792);
+    }
+
+    #[cfg(feature = "serde_support")]
+    use serde_json;
+    #[test]
+    #[cfg(feature = "serde_support")]
+    fn serialize_dezerialize_works() {
+        let mut filter = ScalableCuckooFilter::new(1000, 0.001);
+        for i in 0..100 {
+            filter.insert(&i);
+        }
+        filter.shrink_to_fit();
+        let serialized = serde_json::to_string(&filter).unwrap();
+        let deserialized: ScalableCuckooFilter<usize> = serde_json::from_str(&serialized).unwrap();
+        for i in 0..100 {
+            assert!(filter.contains(&i));
+            assert!(deserialized.contains(&i));
+        }
     }
 }

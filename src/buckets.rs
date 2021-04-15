@@ -1,8 +1,12 @@
 use rand::Rng;
 
-use bits::Bits;
+use crate::bits::Bits;
+
+#[cfg(feature = "serde_support")]
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug)]
+#[cfg_attr(feature = "serde_support", derive(Serialize, Deserialize))]
 pub struct Buckets {
     fingerprint_bitwidth: usize, // fingerprint length in bits
     entries_per_bucket: usize,   // number of entries per bucket
@@ -109,7 +113,7 @@ impl Buckets {
         bucket_index: usize,
         fingerprint: u64,
     ) -> u64 {
-        let i = rng.gen_range(0, self.entries_per_bucket);
+        let i = rng.gen_range(0..self.entries_per_bucket);
         let f = self.get_fingerprint(bucket_index, i);
         self.set_fingerprint(bucket_index, i, fingerprint);
 
