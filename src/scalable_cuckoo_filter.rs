@@ -38,6 +38,7 @@ impl<H: Hasher + Clone, R: Rng> ScalableCuckooFilterBuilder<H, R> {
     /// Sets the initial capacity (i.e., the number of estimated maximum items) of this filter.
     ///
     /// The default value is `100_000`.
+    #[must_use]
     pub fn initial_capacity(mut self, capacity_hint: usize) -> Self {
         self.initial_capacity = capacity_hint;
         self
@@ -50,6 +51,7 @@ impl<H: Hasher + Clone, R: Rng> ScalableCuckooFilterBuilder<H, R> {
     /// # Panics
     ///
     /// This method panics if `probability` is not a non-negative number smaller than or equal to `1.0`.
+    #[must_use]
     pub fn false_positive_probability(mut self, probability: f64) -> Self {
         assert!(0.0 < probability && probability <= 1.0);
         self.false_positive_probability = probability;
@@ -59,6 +61,7 @@ impl<H: Hasher + Clone, R: Rng> ScalableCuckooFilterBuilder<H, R> {
     /// Sets the number of entries per bucket of this filter.
     ///
     /// The default value is `4`.
+    #[must_use]
     pub fn entries_per_bucket(mut self, n: usize) -> Self {
         self.entries_per_bucket = n;
         self
@@ -69,6 +72,7 @@ impl<H: Hasher + Clone, R: Rng> ScalableCuckooFilterBuilder<H, R> {
     /// If this limit exceeded, the filter will be expanded.
     ///
     /// The default value is `512`.
+    #[must_use]
     pub fn max_kicks(mut self, kicks: usize) -> Self {
         self.max_kicks = kicks;
         self
