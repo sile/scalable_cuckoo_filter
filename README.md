@@ -1,7 +1,7 @@
 scalable_cuckoo_filter
 ======================
 
-[![scalable_cuckoo_filter](http://meritbadge.herokuapp.com/scalable_cuckoo_filter)](https://crates.io/crates/scalable_cuckoo_filter)
+[![scalable_cuckoo_filter](https://img.shields.io/crates/v/scalable_cuckoo_filter.svg)](https://crates.io/crates/scalable_cuckoo_filter)
 [![Documentation](https://docs.rs/scalable_cuckoo_filter/badge.svg)](https://docs.rs/scalable_cuckoo_filter)
 [![Actions Status](https://github.com/sile/scalable_cuckoo_filter/workflows/CI/badge.svg)](https://github.com/sile/scalable_cuckoo_filter/actions)
 [![Coverage Status](https://coveralls.io/repos/github/sile/scalable_cuckoo_filter/badge.svg?branch=master)](https://coveralls.io/github/sile/scalable_cuckoo_filter?branch=master)
