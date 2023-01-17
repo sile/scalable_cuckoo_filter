@@ -1,7 +1,7 @@
 #[cfg(feature = "serde_support")]
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 #[cfg_attr(feature = "serde_support", derive(Serialize, Deserialize))]
 pub struct Bits(#[cfg_attr(feature = "serde_support", serde(with = "serde_bytes"))] Vec<u8>);
 impl Bits {
