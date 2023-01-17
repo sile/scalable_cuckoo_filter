@@ -1,6 +1,6 @@
 [package]
 name = "scalable_cuckoo_filter"
-edition = "2018"
+edition = "2021"
 version = "0.2.0"
 authors = ["Takeru Ohta <phjgt308@gmail.com>"]
 description = "A variant of Cuckoo Filter whose size automatically scales as necessary"
