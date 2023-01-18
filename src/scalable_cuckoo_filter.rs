@@ -132,7 +132,7 @@ impl Default for ScalableCuckooFilterBuilder {
 use serde::{Deserialize, Serialize};
 
 /// Scalable Cuckoo Filter.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 #[cfg_attr(feature = "serde_support", derive(Serialize, Deserialize))]
 pub struct ScalableCuckooFilter<T: ?Sized, H = DefaultHasher, R = DefaultRng> {
     #[cfg_attr(feature = "serde_support", serde(skip))]

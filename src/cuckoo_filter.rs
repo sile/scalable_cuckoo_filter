@@ -8,7 +8,7 @@ use crate::buckets::Buckets;
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct CuckooFilter {
     buckets: Buckets,
@@ -149,7 +149,7 @@ impl CuckooFilter {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 struct ExceptionalItems(Vec<(u64, usize)>);
 impl ExceptionalItems {

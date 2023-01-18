@@ -5,7 +5,7 @@ use crate::bits::Bits;
 #[cfg(feature = "serde_support")]
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 #[cfg_attr(feature = "serde_support", derive(Serialize, Deserialize))]
 pub struct Buckets {
     fingerprint_bitwidth: usize, // fingerprint length in bits
