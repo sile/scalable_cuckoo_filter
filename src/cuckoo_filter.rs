@@ -76,6 +76,27 @@ impl CuckooFilter {
     }
 
     #[inline]
+    pub fn remove<H: Hasher + Clone>(&mut self, hasher: &H, item_hash: u64) {
+        let fingerprint = self.buckets.fingerprint(item_hash);
+        let i0 = self.buckets.index(item_hash);
+        let i1 = self
+            .buckets
+            .index(i0 as u64 ^ crate::hash(hasher, &fingerprint));
+
+        let removed = if self.buckets.contains(i0, fingerprint) {
+            self.buckets.remove_fingerprint(i0, fingerprint)
+        } else if self.buckets.contains(i1, fingerprint) {
+            self.buckets.remove_fingerprint(i1, fingerprint)
+        } else {
+            false
+        };
+
+        if removed {
+            self.item_count -= 1;
+        }
+    }
+
+    #[inline]
     pub fn shrink_to_fit<H: Hasher + Clone, R: Rng>(&mut self, hasher: &H, rng: &mut R) {
         let entries_per_bucket = self.buckets.entries_per_bucket();
         let shrunk_buckets_len = Buckets::required_number_of_buckets(

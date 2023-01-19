@@ -224,6 +224,14 @@ impl<T: Hash + ?Sized, H: Hasher + Clone, R: Rng> ScalableCuckooFilter<T, H, R> 
             f.shrink_to_fit(&self.hasher, &mut self.rng);
         }
     }
+    
+    /// Removes `item` from this filter.
+    pub fn remove(&mut self, item: &T) {
+        let item_hash = crate::hash(&self.hasher, item);
+        self.filters
+            .iter_mut()
+            .for_each(|f| f.remove(&mut self.hasher, item_hash));
+    }
 
     fn grow(&mut self) {
         let capacity = self.initial_capacity * 2usize.pow(self.filters.len() as u32);
@@ -278,6 +286,36 @@ mod test {
             assert!(filter.contains(&i));
         }
         assert_eq!(filter.len(), 10_000);
+    }
+
+    #[test]
+    fn remove_works() {
+        use rand::{rngs::StdRng, SeedableRng};
+
+        let mut seed = [0; 32];
+        for i in 0..seed.len() {
+            seed[i] = i as u8;
+        }
+
+        let rng: StdRng = SeedableRng::from_seed(seed);
+        let mut filter = ScalableCuckooFilterBuilder::new()
+            .initial_capacity(100)
+            .false_positive_probability(0.00001)
+            .rng(rng)
+            .finish();
+
+        for i in 0..10_000 {
+            filter.insert(&i);
+        }
+        for i in 0..10_000 {
+            filter.remove(&i);
+            assert!(!filter.contains(&i));
+            //assert!(!filter.contains(&i));
+            //println!("{}", i);
+            //if filter.contains(&i) {
+            //    println!("{i}");
+            //}
+        }
     }
 
     #[test]
