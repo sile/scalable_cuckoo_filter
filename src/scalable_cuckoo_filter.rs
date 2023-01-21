@@ -224,7 +224,7 @@ impl<T: Hash + ?Sized, H: Hasher + Clone, R: Rng> ScalableCuckooFilter<T, H, R> 
             f.shrink_to_fit(&self.hasher, &mut self.rng);
         }
     }
-    
+
     /// Removes `item` from this filter.
     pub fn remove(&mut self, item: &T) {
         let item_hash = crate::hash(&self.hasher, item);
@@ -310,11 +310,6 @@ mod test {
         for i in 0..10_000 {
             filter.remove(&i);
             assert!(!filter.contains(&i));
-            //assert!(!filter.contains(&i));
-            //println!("{}", i);
-            //if filter.contains(&i) {
-            //    println!("{i}");
-            //}
         }
     }
 

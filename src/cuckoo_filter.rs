@@ -83,7 +83,9 @@ impl CuckooFilter {
             .buckets
             .index(i0 as u64 ^ crate::hash(hasher, &fingerprint));
 
-        let removed = if self.buckets.contains(i0, fingerprint) {
+        let removed = if self.exceptional_items.contains(i0, i1, fingerprint) {
+            self.exceptional_items.remove(i0, i1, fingerprint)
+        } else if self.buckets.contains(i0, fingerprint) {
             self.buckets.remove_fingerprint(i0, fingerprint)
         } else if self.buckets.contains(i1, fingerprint) {
             self.buckets.remove_fingerprint(i1, fingerprint)
@@ -217,5 +219,15 @@ impl ExceptionalItems {
             }
         }
         self.0.push(item);
+    }
+
+    #[inline]
+    fn remove(&mut self, i0: usize, i1: usize, fingerprint: u64) -> bool {
+        let item = (fingerprint, cmp::min(i0, i1));
+        if let Ok(index) = self.0.binary_search(&item) {
+            self.0.remove(index);
+            return true;
+        }
+        false
     }
 }
