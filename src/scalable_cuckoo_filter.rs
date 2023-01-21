@@ -230,7 +230,7 @@ impl<T: Hash + ?Sized, H: Hasher + Clone, R: Rng> ScalableCuckooFilter<T, H, R> 
         let item_hash = crate::hash(&self.hasher, item);
         self.filters
             .iter_mut()
-            .for_each(|f| f.remove(&mut self.hasher, item_hash));
+            .for_each(|f| f.remove(&self.hasher, item_hash));
     }
 
     fn grow(&mut self) {
