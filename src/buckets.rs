@@ -125,6 +125,22 @@ impl Buckets {
     }
 
     #[inline]
+    pub fn remove_fingerprint(&mut self, bucket_index: usize, fingerprint: u64) -> bool {
+        if fingerprint == 0 {
+            println!("Fingerprint zero");
+            return false;
+        }
+        for i in 0..self.entries_per_bucket {
+            let f = self.get_fingerprint(bucket_index, i);
+            if f == fingerprint {
+                self.set_fingerprint(bucket_index, i, 0);
+                return true;
+            }
+        }
+        false
+    }
+
+    #[inline]
     fn set_fingerprint(&mut self, bucket_index: usize, entry_index: usize, fingerprint: u64) {
         let offset = self.bucket_bitwidth * bucket_index + self.fingerprint_bitwidth * entry_index;
         self.bits
