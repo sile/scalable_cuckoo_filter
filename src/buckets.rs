@@ -126,10 +126,7 @@ impl Buckets {
 
     #[inline]
     pub fn remove_fingerprint(&mut self, bucket_index: usize, fingerprint: u64) -> bool {
-        if fingerprint == 0 {
-            println!("Fingerprint zero");
-            return false;
-        }
+        debug_assert_ne!(fingerprint, 0);
         for i in 0..self.entries_per_bucket {
             let f = self.get_fingerprint(bucket_index, i);
             if f == fingerprint {
