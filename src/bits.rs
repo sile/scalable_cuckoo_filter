@@ -32,7 +32,7 @@ impl Bits {
     pub fn set_uint(&mut self, position: usize, mut size: usize, mut value: u64) {
         let mut offset = position % 8;
         for b in &mut self.0[position / 8..] {
-            let high = ((u64::from(*b) >> size) << size) as u8;
+            let high = ((u64::from(*b) >> (size + offset)) << (size + offset)) as u8;
             let middle = (value << offset) as u8;
             let low = *b & ((1 << offset) - 1);
             *b = high | middle | low;
@@ -69,5 +69,17 @@ mod test {
         bits.set_uint(335, 4, 0b1010);
         assert_eq!(bits.get_uint(335, 4), 0b1010);
         assert_eq!(bits.get_uint(333, 10), 0b10_1110_1001);
+    }
+
+    #[test]
+    fn test_high_bits() {
+        let mut bits = Bits::new(320);
+        assert_eq!(bits.len(), 320);
+
+        assert_eq!(bits.get_uint(290, 5), 0);
+        bits.set_uint(290, 5, 31);
+        assert_eq!(bits.get_uint(290, 5), 31);
+        bits.set_uint(290, 5, 21);
+        assert_eq!(bits.get_uint(290, 5), 21);
     }
 }
