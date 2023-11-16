@@ -15,10 +15,12 @@ fn insert(c: &mut Criterion) {
         let mut filter = ScalableCuckooFilter::new(1_000_000, precision);
         let mut i = 0;
 
-        group.bench_function(BenchmarkId::new("precision", precision), |b| b.iter(|| {
-            filter.insert(&i);
-            i += 1;
-        }));
+        group.bench_function(BenchmarkId::new("precision", precision), |b| {
+            b.iter(|| {
+                filter.insert(&i);
+                i += 1;
+            })
+        });
     }
 }
 
@@ -27,19 +29,24 @@ fn contains(c: &mut Criterion) {
 
     for precision in [0.1, 0.001, 0.0001, 0.00001] {
         let filter = ScalableCuckooFilter::new(1_000_000, precision);
-        
-        group.bench_function(BenchmarkId::new("precision", precision), |b| b.iter_batched(|| {
-            let item: u64 = rand::thread_rng().gen();
 
-            let mut f = filter.clone();
-            f.insert(&item);
-            item
-        }, |item| {
-                filter.contains(&item);
-            }, BatchSize::SmallInput));
+        group.bench_function(BenchmarkId::new("precision", precision), |b| {
+            b.iter_batched(
+                || {
+                    let item: u64 = rand::thread_rng().gen();
+
+                    let mut f = filter.clone();
+                    f.insert(&item);
+                    item
+                },
+                |item| {
+                    filter.contains(&item);
+                },
+                BatchSize::SmallInput,
+            )
+        });
     }
 }
 
 criterion_group!(benches, insert, contains);
 criterion_main!(benches);
-
