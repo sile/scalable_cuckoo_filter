@@ -24,4 +24,11 @@ serde = { version = "1.0", default-features = false, optional = true, features =
 serde_bytes = { version = "0.11", optional = true }
 
 [dev-dependencies]
+criterion = "0.5"
+mimalloc = { version = "*", default-features = false }
 serde_json = "1.0"
+
+[[bench]]
+name = "scalability"
+harness = false
+
