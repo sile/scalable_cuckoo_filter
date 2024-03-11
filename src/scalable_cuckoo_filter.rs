@@ -81,7 +81,7 @@ impl<H: Hasher + Clone, R: Rng> ScalableCuckooFilterBuilder<H, R> {
     /// Sets the hasher of this filter.
     ///
     /// The default value if `DefaultHasher::new()`.
-    pub fn hasher<T: Hasher + Clone>(self, hasher: T) -> ScalableCuckooFilterBuilder<T, R> {
+    pub fn hasher<T: Hasher>(self, hasher: T) -> ScalableCuckooFilterBuilder<T, R> {
         ScalableCuckooFilterBuilder {
             initial_capacity: self.initial_capacity,
             false_positive_probability: self.false_positive_probability,
@@ -132,7 +132,7 @@ impl Default for ScalableCuckooFilterBuilder {
 use serde::{Deserialize, Serialize};
 
 /// Scalable Cuckoo Filter.
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 #[cfg_attr(feature = "serde_support", derive(Serialize, Deserialize))]
 pub struct ScalableCuckooFilter<T: ?Sized, H = DefaultHasher, R = DefaultRng> {
     #[cfg_attr(feature = "serde_support", serde(skip))]
@@ -249,6 +249,20 @@ impl<T: Hash + ?Sized, H: Hasher + Clone, R: Rng> ScalableCuckooFilter<T, H, R> 
         self.filters.push(filter);
     }
 }
+impl<T: Hash + ?Sized, H: Hasher + Clone, R: Rng + Clone> Clone for ScalableCuckooFilter<T, H, R> {
+    fn clone(&self) -> Self {
+        Self {
+            hasher: self.hasher.clone(),
+            filters: self.filters.clone(),
+            initial_capacity: self.initial_capacity,
+            false_positive_probability: self.false_positive_probability,
+            entries_per_bucket: self.entries_per_bucket,
+            max_kicks: self.max_kicks,
+            rng: self.rng.clone(),
+            _item: self._item,
+        }
+    }
+}
 
 #[cfg(test)]
 mod test {
@@ -263,6 +277,23 @@ mod test {
         assert!(!filter.contains("foo"));
         filter.insert("foo");
         assert!(filter.contains("foo"));
+    }
+
+    #[test]
+    fn clone_string_and_str() {
+        let mut filter: ScalableCuckooFilter<String> = ScalableCuckooFilter::new(1000, 0.001);
+        let x = "foo".to_owned();
+        filter.insert(&x);
+        let cloned = filter.clone();
+        assert!(filter.contains(&"foo".to_string()));
+        assert!(cloned.contains(&"foo".to_string()));
+
+        let mut filter: ScalableCuckooFilter<str> = ScalableCuckooFilter::new(1000, 0.001);
+        let x = "foo";
+        filter.insert(x);
+        let cloned = filter.clone();
+        assert!(filter.contains("foo"));
+        assert!(cloned.contains("foo"));
     }
 
     #[test]
