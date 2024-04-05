@@ -345,6 +345,20 @@ mod test {
     }
 
     #[test]
+    fn fingerprint_collision_remove_works() {
+        let mut filter = ScalableCuckooFilter::new(1000, 0.001);
+        filter.insert("foo");
+        filter.insert("foo");
+        assert!(filter.contains("foo"));
+
+        filter.remove("foo");
+        assert!(filter.contains("foo"));
+
+        filter.remove("foo");
+        assert!(!filter.contains("foo"));
+    }
+
+    #[test]
     fn shrink_to_fit_works() {
         let mut filter = ScalableCuckooFilter::new(1000, 0.001);
         for i in 0..100 {
