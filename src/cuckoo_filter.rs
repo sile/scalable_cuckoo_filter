@@ -221,9 +221,11 @@ impl ExceptionalItems {
     #[inline]
     fn insert(&mut self, i0: usize, i1: usize, fingerprint: u64) -> bool {
         let item = (fingerprint, cmp::min(i0, i1));
+        // TODO: use binary search
         for i in 0..self.0.len() {
             match item.cmp(&self.0[i]) {
                 cmp::Ordering::Equal => {
+                    // TODO: allow duplicates
                     return false;
                 }
                 cmp::Ordering::Less => {
