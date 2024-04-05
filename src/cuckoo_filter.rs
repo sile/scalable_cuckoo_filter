@@ -141,17 +141,28 @@ impl CuckooFilter {
         i0: usize,
         fingerprint: u64,
     ) {
+        if self.try_insert_fingerprint(hasher, rng, i0, fingerprint) {
+            self.item_count += 1;
+        }
+    }
+
+    #[inline]
+    fn try_insert_fingerprint<H: Hasher + Clone, R: Rng>(
+        &mut self,
+        hasher: &H,
+        rng: &mut R,
+        i0: usize,
+        fingerprint: u64,
+    ) -> bool {
         let i1 = self
             .buckets
             .index(i0 as u64 ^ crate::hash(hasher, &fingerprint));
-        self.item_count += 1;
 
         if fingerprint == 0 {
-            self.exceptional_items.insert(i0, i1, 0);
-            return;
+            return self.exceptional_items.insert(i0, i1, 0);
         }
         if self.buckets.try_insert(i0, fingerprint) || self.buckets.try_insert(i1, fingerprint) {
-            return;
+            return true;
         }
 
         let mut fingerprint = fingerprint;
@@ -164,10 +175,10 @@ impl CuckooFilter {
                 .buckets
                 .index(i as u64 ^ crate::hash(hasher, &fingerprint));
             if self.buckets.try_insert(i, fingerprint) {
-                return;
+                return true;
             }
         }
-        self.exceptional_items.insert(prev_i, i, fingerprint);
+        return self.exceptional_items.insert(prev_i, i, fingerprint);
     }
 }
 
@@ -208,16 +219,18 @@ impl ExceptionalItems {
     }
 
     #[inline]
-    fn insert(&mut self, i0: usize, i1: usize, fingerprint: u64) {
+    fn insert(&mut self, i0: usize, i1: usize, fingerprint: u64) -> bool {
         let item = (fingerprint, cmp::min(i0, i1));
         for i in 0..self.0.len() {
-            debug_assert_ne!(self.0[i], item);
-            if item < self.0[i] {
+            if item == self.0[i] {
+                return false;
+            } else if item < self.0[i] {
                 self.0.insert(i, item);
-                return;
+                return true;
             }
         }
         self.0.push(item);
+        true
     }
 
     #[inline]
