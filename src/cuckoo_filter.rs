@@ -178,7 +178,7 @@ impl CuckooFilter {
                 return true;
             }
         }
-        return self.exceptional_items.insert(prev_i, i, fingerprint);
+        self.exceptional_items.insert(prev_i, i, fingerprint)
     }
 }
 
@@ -222,11 +222,15 @@ impl ExceptionalItems {
     fn insert(&mut self, i0: usize, i1: usize, fingerprint: u64) -> bool {
         let item = (fingerprint, cmp::min(i0, i1));
         for i in 0..self.0.len() {
-            if item == self.0[i] {
-                return false;
-            } else if item < self.0[i] {
-                self.0.insert(i, item);
-                return true;
+            match item.cmp(&self.0[i]) {
+                cmp::Ordering::Equal => {
+                    return false;
+                }
+                cmp::Ordering::Less => {
+                    self.0.insert(i, item);
+                    return true;
+                }
+                cmp::Ordering::Greater => {}
             }
         }
         self.0.push(item);
