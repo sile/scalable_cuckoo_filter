@@ -206,12 +206,6 @@ impl<T: Hash + ?Sized, H: Hasher + Clone, R: Rng> ScalableCuckooFilter<T, H, R> 
     pub fn insert(&mut self, item: &T) {
         let item_hash = crate::hash(&self.hasher, item);
         let last = self.filters.len() - 1;
-        for filter in self.filters.iter().take(last) {
-            if filter.contains(&self.hasher, item_hash) {
-                return;
-            }
-        }
-
         self.filters[last].insert(&self.hasher, &mut self.rng, item_hash);
         if self.filters[last].is_nearly_full() {
             self.grow();
@@ -228,9 +222,12 @@ impl<T: Hash + ?Sized, H: Hasher + Clone, R: Rng> ScalableCuckooFilter<T, H, R> 
     /// Removes `item` from this filter.
     pub fn remove(&mut self, item: &T) {
         let item_hash = crate::hash(&self.hasher, item);
-        self.filters
-            .iter_mut()
-            .for_each(|f| f.remove(&self.hasher, item_hash));
+        for filter in &mut self.filters {
+            let removed = filter.remove(&self.hasher, item_hash);
+            if removed {
+                break;
+            }
+        }
     }
 
     fn grow(&mut self) {
