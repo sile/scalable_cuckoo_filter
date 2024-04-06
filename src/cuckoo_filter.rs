@@ -167,7 +167,7 @@ impl CuckooFilter {
                 return;
             }
         }
-        self.exceptional_items.insert(prev_i, i, fingerprint)
+        self.exceptional_items.insert(prev_i, i, fingerprint);
     }
 }
 
