@@ -203,6 +203,30 @@ impl<T: Hash + ?Sized, H: Hasher + Clone, R: Rng> ScalableCuckooFilter<T, H, R> 
     /// Inserts `item` into this filter.
     ///
     /// If the current filter becomes full, it will be expanded automatically.
+    ///
+    /// # Note
+    ///
+    /// Cuckoo Filter algorithm is unable to differentiate between two items with
+    /// the same fingerprint, so every [`insert`] method call will add a new entry
+    /// even if the same item is inserted multiple times.
+    ///
+    /// This behavior is necessary to avoid false negatives when using the [`remove`] method.
+    /// However, if you do not plan to use the [`remove`] method, you can prevent potential
+    /// duplicate insertions by checking for the existence of the item before insertion,
+    /// as shown below:
+    ///
+    /// ```
+    /// use scalable_cuckoo_filter::ScalableCuckooFilter;
+    ///
+    /// let mut filter = ScalableCuckooFilter::new(1000, 0.001);
+    /// let items = ["foo", "bar", "foo", "baz"];
+    ///
+    /// for item in &items {
+    ///     if !filter.contains(item) {
+    ///         filter.insert(item);
+    ///     }
+    /// }
+    /// ```
     pub fn insert(&mut self, item: &T) {
         let item_hash = crate::hash(&self.hasher, item);
         let last = self.filters.len() - 1;
