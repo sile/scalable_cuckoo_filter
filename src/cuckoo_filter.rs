@@ -141,28 +141,17 @@ impl CuckooFilter {
         i0: usize,
         fingerprint: u64,
     ) {
-        if self.try_insert_fingerprint(hasher, rng, i0, fingerprint) {
-            self.item_count += 1;
-        }
-    }
-
-    #[inline]
-    fn try_insert_fingerprint<H: Hasher + Clone, R: Rng>(
-        &mut self,
-        hasher: &H,
-        rng: &mut R,
-        i0: usize,
-        fingerprint: u64,
-    ) -> bool {
+        self.item_count += 1;
         let i1 = self
             .buckets
             .index(i0 as u64 ^ crate::hash(hasher, &fingerprint));
 
         if fingerprint == 0 {
-            return self.exceptional_items.insert(i0, i1, 0);
+            self.exceptional_items.insert(i0, i1, 0);
+            return;
         }
         if self.buckets.try_insert(i0, fingerprint) || self.buckets.try_insert(i1, fingerprint) {
-            return true;
+            return;
         }
 
         let mut fingerprint = fingerprint;
@@ -175,7 +164,7 @@ impl CuckooFilter {
                 .buckets
                 .index(i as u64 ^ crate::hash(hasher, &fingerprint));
             if self.buckets.try_insert(i, fingerprint) {
-                return true;
+                return;
             }
         }
         self.exceptional_items.insert(prev_i, i, fingerprint)
@@ -219,24 +208,10 @@ impl ExceptionalItems {
     }
 
     #[inline]
-    fn insert(&mut self, i0: usize, i1: usize, fingerprint: u64) -> bool {
+    fn insert(&mut self, i0: usize, i1: usize, fingerprint: u64) {
         let item = (fingerprint, cmp::min(i0, i1));
-        // TODO: use binary search
-        for i in 0..self.0.len() {
-            match item.cmp(&self.0[i]) {
-                cmp::Ordering::Equal => {
-                    // TODO: allow duplicates
-                    return false;
-                }
-                cmp::Ordering::Less => {
-                    self.0.insert(i, item);
-                    return true;
-                }
-                cmp::Ordering::Greater => {}
-            }
-        }
-        self.0.push(item);
-        true
+        let index = self.0.binary_search(&item).unwrap_or_else(|i| i);
+        self.0.insert(index, item);
     }
 
     #[inline]
