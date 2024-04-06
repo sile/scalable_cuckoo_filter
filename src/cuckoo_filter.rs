@@ -76,7 +76,7 @@ impl CuckooFilter {
     }
 
     #[inline]
-    pub fn remove<H: Hasher + Clone>(&mut self, hasher: &H, item_hash: u64) {
+    pub fn remove<H: Hasher + Clone>(&mut self, hasher: &H, item_hash: u64) -> bool {
         let fingerprint = self.buckets.fingerprint(item_hash);
         let i0 = self.buckets.index(item_hash);
         let i1 = self
@@ -96,6 +96,8 @@ impl CuckooFilter {
         if removed {
             self.item_count -= 1;
         }
+
+        removed
     }
 
     #[inline]
@@ -142,9 +144,6 @@ impl CuckooFilter {
         let i1 = self
             .buckets
             .index(i0 as u64 ^ crate::hash(hasher, &fingerprint));
-        if self.contains_fingerprint(i0, i1, fingerprint) {
-            return;
-        }
         self.item_count += 1;
 
         if fingerprint == 0 {
@@ -211,14 +210,8 @@ impl ExceptionalItems {
     #[inline]
     fn insert(&mut self, i0: usize, i1: usize, fingerprint: u64) {
         let item = (fingerprint, cmp::min(i0, i1));
-        for i in 0..self.0.len() {
-            debug_assert_ne!(self.0[i], item);
-            if item < self.0[i] {
-                self.0.insert(i, item);
-                return;
-            }
-        }
-        self.0.push(item);
+        let index = self.0.binary_search(&item).unwrap_or_else(|i| i);
+        self.0.insert(index, item);
     }
 
     #[inline]

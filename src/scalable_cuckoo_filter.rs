@@ -203,15 +203,33 @@ impl<T: Hash + ?Sized, H: Hasher + Clone, R: Rng> ScalableCuckooFilter<T, H, R> 
     /// Inserts `item` into this filter.
     ///
     /// If the current filter becomes full, it will be expanded automatically.
+    ///
+    /// # Note
+    ///
+    /// Cuckoo Filter algorithm is unable to differentiate between two items with
+    /// the same fingerprint, so every [`insert`] method call will add a new entry
+    /// even if the same item is inserted multiple times.
+    ///
+    /// This behavior is necessary to avoid false negatives when using the [`remove`] method.
+    /// However, if you do not plan to use the [`remove`] method, you can prevent potential
+    /// duplicate insertions by checking for the existence of the item before insertion,
+    /// as shown below:
+    ///
+    /// ```
+    /// use scalable_cuckoo_filter::ScalableCuckooFilter;
+    ///
+    /// let mut filter = ScalableCuckooFilter::new(1000, 0.001);
+    /// let items = ["foo", "bar", "foo", "baz"];
+    ///
+    /// for item in &items {
+    ///     if !filter.contains(item) {
+    ///         filter.insert(item);
+    ///     }
+    /// }
+    /// ```
     pub fn insert(&mut self, item: &T) {
         let item_hash = crate::hash(&self.hasher, item);
         let last = self.filters.len() - 1;
-        for filter in self.filters.iter().take(last) {
-            if filter.contains(&self.hasher, item_hash) {
-                return;
-            }
-        }
-
         self.filters[last].insert(&self.hasher, &mut self.rng, item_hash);
         if self.filters[last].is_nearly_full() {
             self.grow();
@@ -228,9 +246,12 @@ impl<T: Hash + ?Sized, H: Hasher + Clone, R: Rng> ScalableCuckooFilter<T, H, R> 
     /// Removes `item` from this filter.
     pub fn remove(&mut self, item: &T) {
         let item_hash = crate::hash(&self.hasher, item);
-        self.filters
-            .iter_mut()
-            .for_each(|f| f.remove(&self.hasher, item_hash));
+        for filter in &mut self.filters {
+            let removed = filter.remove(&self.hasher, item_hash);
+            if removed {
+                break;
+            }
+        }
     }
 
     fn grow(&mut self) {
@@ -345,6 +366,20 @@ mod test {
     }
 
     #[test]
+    fn fingerprint_collision_remove_works() {
+        let mut filter = ScalableCuckooFilter::new(1000, 0.001);
+        filter.insert("foo");
+        filter.insert("foo");
+        assert!(filter.contains("foo"));
+
+        filter.remove("foo");
+        assert!(filter.contains("foo"));
+
+        filter.remove("foo");
+        assert!(!filter.contains("foo"));
+    }
+
+    #[test]
     fn shrink_to_fit_works() {
         let mut filter = ScalableCuckooFilter::new(1000, 0.001);
         for i in 0..100 {
@@ -361,8 +396,6 @@ mod test {
         assert_eq!(filter.bits(), 1792);
     }
 
-    #[cfg(feature = "serde_support")]
-    use serde_json;
     #[test]
     #[cfg(feature = "serde_support")]
     fn serialize_dezerialize_works() {

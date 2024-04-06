@@ -85,8 +85,6 @@ impl Buckets {
             let f = self.get_fingerprint(bucket_index, i);
             if f == fingerprint {
                 return true;
-            } else if f == 0 {
-                break;
             }
         }
         false
@@ -101,7 +99,6 @@ impl Buckets {
                 self.set_fingerprint(bucket_index, i, fingerprint);
                 return true;
             }
-            debug_assert_ne!(f, fingerprint);
         }
         false
     }
@@ -119,7 +116,6 @@ impl Buckets {
 
         debug_assert_ne!(fingerprint, 0);
         debug_assert_eq!(fingerprint, self.get_fingerprint(bucket_index, i));
-        debug_assert_ne!(f, fingerprint);
         debug_assert_ne!(f, 0);
         f
     }
@@ -192,7 +188,6 @@ impl<'a> Iterator for Iter<'a> {
 #[cfg(test)]
 mod test {
     use super::*;
-    use rand;
 
     #[test]
     fn it_works() {
