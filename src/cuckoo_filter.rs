@@ -141,10 +141,10 @@ impl CuckooFilter {
         i0: usize,
         fingerprint: u64,
     ) {
-        self.item_count += 1;
         let i1 = self
             .buckets
             .index(i0 as u64 ^ crate::hash(hasher, &fingerprint));
+        self.item_count += 1;
 
         if fingerprint == 0 {
             self.exceptional_items.insert(i0, i1, 0);
