@@ -396,8 +396,6 @@ mod test {
         assert_eq!(filter.bits(), 1792);
     }
 
-    #[cfg(feature = "serde_support")]
-    use serde_json;
     #[test]
     #[cfg(feature = "serde_support")]
     fn serialize_dezerialize_works() {
