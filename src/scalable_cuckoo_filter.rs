@@ -244,12 +244,14 @@ impl<T: Hash + ?Sized, H: Hasher + Clone, R: Rng> ScalableCuckooFilter<T, H, R> 
     }
 
     /// Removes `item` from this filter.
+    ///
+    /// This method returns `true` if an entry with the same fingerprint as `item` has been removed, otherwise it returns `false`.
     pub fn remove(&mut self, item: &T) -> bool {
         let item_hash = crate::hash(&self.hasher, item);
         for filter in &mut self.filters {
             let removed = filter.remove(&self.hasher, item_hash);
             if removed {
-                return true
+                return true;
             }
         }
         false
