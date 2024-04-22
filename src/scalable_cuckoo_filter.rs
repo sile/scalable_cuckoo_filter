@@ -433,7 +433,7 @@ mod test {
     #[test]
     fn info_params() {
         let mut filter = ScalableCuckooFilter::new(10, 0.001);
-        
+
         // constant values
         assert_eq!(filter.max_kicks(), 512);
         assert_eq!(filter.bucket_size(), 4);
