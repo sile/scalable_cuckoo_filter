@@ -212,12 +212,12 @@ impl<T: Hash + ?Sized, H: Hasher + Clone, R: Rng> ScalableCuckooFilter<T, H, R> 
     pub fn max_kicks(&self) -> usize {
         self.max_kicks
     }
-    
+
     /// Returns memory consume by the filter.
     pub fn mem_usage(&self) -> usize {
-        self.bits() as usize +
-            mem::size_of::<ScalableCuckooFilter<&str>>() +
-            self.filters.len() * mem::size_of::<CuckooFilter>()
+        self.bits() as usize
+            + mem::size_of::<ScalableCuckooFilter<&str>>()
+            + self.filters.len() * mem::size_of::<CuckooFilter>()
     }
 
     /// Returns `true` if this filter may contain `item`, otherwise `false`.
@@ -443,10 +443,11 @@ mod test {
         assert_eq!(filter.capacity(), 16);
         assert_eq!(filter.num_filters(), 1);
         assert_eq!(filter.mem_usage(), 456);
-        
+
         for i in 0..100 {
             filter.insert(&i);
         }
+
         assert_eq!(filter.bits(), 2752);
         assert_eq!(filter.capacity(), 114);
         assert_eq!(filter.num_filters(), 3);
