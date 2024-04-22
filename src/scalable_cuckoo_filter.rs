@@ -2,6 +2,7 @@ use rand::{rngs::ThreadRng, Rng};
 use siphasher::sip::SipHasher13;
 use std::hash::{Hash, Hasher};
 use std::marker::PhantomData;
+use std::mem;
 
 use crate::cuckoo_filter::CuckooFilter;
 
@@ -190,6 +191,33 @@ impl<T: Hash + ?Sized, H: Hasher + Clone, R: Rng> ScalableCuckooFilter<T, H, R> 
     /// Returns the number of bits being used for representing this filter.
     pub fn bits(&self) -> u64 {
         self.filters.iter().map(|f| f.bits()).sum()
+    }
+
+    /// Returns the number of cuckoo filters.
+    pub fn num_filters(&self) -> usize {
+        self.filters.len()
+    }
+
+    /// Returns the number of cuckoo filters.
+    pub fn false_positive_probability(&self) -> f64 {
+        self.false_positive_probability
+    }
+
+    /// Returns the number of elements in each buckets.
+    pub fn bucket_size(&self) -> usize {
+        self.entries_per_bucket
+    }
+
+    /// Returns the number of kicks before the filter grows.
+    pub fn max_kicks(&self) -> usize {
+        self.max_kicks
+    }
+    
+    /// Returns the number of kicks before the filter grows.
+    pub fn mem_usage(&self) -> usize {
+        self.bits() as usize +
+        mem::size_of::<ScalableCuckooFilter<&str>>() +
+        self.filters.len() * mem::size_of::<CuckooFilter>()
     }
 
     /// Returns `true` if this filter may contain `item`, otherwise `false`.
@@ -400,6 +428,31 @@ mod test {
         }
         assert_eq!(filter.capacity(), 128);
         assert_eq!(filter.bits(), 1792);
+    }
+
+    #[test]
+    fn info_params() {
+        let mut filter = ScalableCuckooFilter::new(10, 0.001);
+        
+        // constant values
+        assert_eq!(filter.max_kicks(), 512);
+        assert_eq!(filter.bucket_size(), 4);
+        assert_eq!(filter.false_positive_probability(), 0.001);
+
+        // dynamic values
+        assert_eq!(filter.bits(), 224);
+        assert_eq!(filter.capacity(), 16);
+        assert_eq!(filter.num_filters(), 1);
+        assert_eq!(filter.mem_usage(), 456);
+        
+        for i in 0..100 {
+            filter.insert(&i);
+        }
+
+        assert_eq!(filter.bits(), 2752);
+        assert_eq!(filter.capacity(), 114);
+        assert_eq!(filter.num_filters(), 3);
+        assert_eq!(filter.mem_usage(), 3176);
     }
 
     #[test]
