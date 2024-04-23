@@ -2,7 +2,6 @@ use rand::{rngs::ThreadRng, Rng};
 use siphasher::sip::SipHasher13;
 use std::hash::{Hash, Hasher};
 use std::marker::PhantomData;
-use std::mem;
 
 use crate::cuckoo_filter::CuckooFilter;
 
