@@ -193,12 +193,7 @@ impl<T: Hash + ?Sized, H: Hasher + Clone, R: Rng> ScalableCuckooFilter<T, H, R> 
         self.filters.iter().map(|f| f.bits()).sum()
     }
 
-    /// Returns the number of cuckoo filters.
-    pub fn num_filters(&self) -> usize {
-        self.filters.len()
-    }
-
-    /// Returns the number of cuckoo filters.
+    /// Returns the false positive probability.
     pub fn false_positive_probability(&self) -> f64 {
         self.false_positive_probability
     }
@@ -211,13 +206,6 @@ impl<T: Hash + ?Sized, H: Hasher + Clone, R: Rng> ScalableCuckooFilter<T, H, R> 
     /// Returns the number of kicks before the filter grows.
     pub fn max_kicks(&self) -> usize {
         self.max_kicks
-    }
-
-    /// Returns memory consume by the filter.
-    pub fn mem_usage(&self) -> usize {
-        self.bits() as usize
-            + mem::size_of::<ScalableCuckooFilter<&str>>()
-            + self.filters.len() * mem::size_of::<CuckooFilter>()
     }
 
     /// Returns `true` if this filter may contain `item`, otherwise `false`.
