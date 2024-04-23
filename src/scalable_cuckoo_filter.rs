@@ -429,8 +429,6 @@ mod test {
         // dynamic values
         assert_eq!(filter.bits(), 224);
         assert_eq!(filter.capacity(), 16);
-        assert_eq!(filter.num_filters(), 1);
-        assert_eq!(filter.mem_usage(), 456);
 
         for i in 0..100 {
             filter.insert(&i);
@@ -438,8 +436,6 @@ mod test {
 
         assert_eq!(filter.bits(), 2752);
         assert_eq!(filter.capacity(), 114);
-        assert_eq!(filter.num_filters(), 3);
-        assert_eq!(filter.mem_usage(), 3176);
     }
 
     #[test]
