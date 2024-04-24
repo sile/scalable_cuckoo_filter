@@ -192,6 +192,21 @@ impl<T: Hash + ?Sized, H: Hasher + Clone, R: Rng> ScalableCuckooFilter<T, H, R> 
         self.filters.iter().map(|f| f.bits()).sum()
     }
 
+    /// Returns the false positive probability.
+    pub fn false_positive_probability(&self) -> f64 {
+        self.false_positive_probability
+    }
+
+    /// Returns the number of elements in each buckets.
+    pub fn entries_per_bucket(&self) -> usize {
+        self.entries_per_bucket
+    }
+
+    /// Returns the number of kicks before the filter grows.
+    pub fn max_kicks(&self) -> usize {
+        self.max_kicks
+    }
+
     /// Returns `true` if this filter may contain `item`, otherwise `false`.
     pub fn contains(&self, item: &T) -> bool {
         let item_hash = crate::hash(&self.hasher, item);
@@ -400,6 +415,26 @@ mod test {
         }
         assert_eq!(filter.capacity(), 128);
         assert_eq!(filter.bits(), 1792);
+    }
+
+    #[test]
+    fn info_params() {
+        let mut filter = ScalableCuckooFilter::new(10, 0.001);
+
+        // constant values
+        assert_eq!(filter.max_kicks(), 512);
+        assert_eq!(filter.entries_per_bucket(), 4);
+        assert_eq!(filter.false_positive_probability(), 0.001);
+        // dynamic values
+        assert_eq!(filter.bits(), 224);
+        assert_eq!(filter.capacity(), 16);
+
+        for i in 0..100 {
+            filter.insert(&i);
+        }
+
+        assert_eq!(filter.bits(), 2752);
+        assert_eq!(filter.capacity(), 114);
     }
 
     #[test]
