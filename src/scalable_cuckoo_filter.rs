@@ -198,7 +198,7 @@ impl<T: Hash + ?Sized, H: Hasher + Clone, R: Rng> ScalableCuckooFilter<T, H, R> 
     }
 
     /// Returns the number of elements in each buckets.
-    pub fn bucket_size(&self) -> usize {
+    pub fn entries_per_bucket(&self) -> usize {
         self.entries_per_bucket
     }
 
