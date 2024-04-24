@@ -423,7 +423,7 @@ mod test {
 
         // constant values
         assert_eq!(filter.max_kicks(), 512);
-        assert_eq!(filter.bucket_size(), 4);
+        assert_eq!(filter.entries_per_bucket(), 4);
         assert_eq!(filter.false_positive_probability(), 0.001);
         // dynamic values
         assert_eq!(filter.bits(), 224);
