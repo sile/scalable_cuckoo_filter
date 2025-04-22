@@ -7,7 +7,7 @@
 //! ```
 //! use scalable_cuckoo_filter::ScalableCuckooFilter;
 //!
-//! let mut filter = ScalableCuckooFilter::new(100, 0.001);
+//! let mut filter = ScalableCuckooFilter::<str>::new(100, 0.001);
 //! assert!(!filter.contains("foo"));
 //! filter.insert("foo");
 //! assert!(filter.contains("foo"));
@@ -18,7 +18,7 @@
 //! ```
 //! use scalable_cuckoo_filter::ScalableCuckooFilter;
 //!
-//! let mut filter = ScalableCuckooFilter::new(100, 0.001);
+//! let mut filter = ScalableCuckooFilter::<usize>::new(100, 0.001);
 //! assert_eq!(filter.capacity(), 128);
 //!
 //! for i in 0..1000 {
@@ -32,7 +32,7 @@
 //! ```
 //! use scalable_cuckoo_filter::ScalableCuckooFilter;
 //!
-//! let mut filter = ScalableCuckooFilter::new(1000, 0.001);
+//! let mut filter = ScalableCuckooFilter::<usize>::new(1000, 0.001);
 //! for i in 0..100 {
 //!     filter.insert(&i);
 //! }
