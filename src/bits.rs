@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 pub struct Bits(#[cfg_attr(feature = "serde_support", serde(with = "serde_bytes"))] Vec<u8>);
 impl Bits {
     pub fn new(size_hint: usize) -> Self {
-        Bits(vec![0; (size_hint + 7) / 8])
+        Bits(vec![0; size_hint.div_ceil(8)])
     }
 
     #[inline]
@@ -18,7 +18,7 @@ impl Bits {
     pub fn get_uint(&self, position: usize, size: usize) -> u64 {
         let mut value = 0;
         let start = position / 8;
-        let end = (position + size + 7) / 8;
+        let end = (position + size).div_ceil(8);
         for (i, &b) in self.0[start..end].iter().enumerate() {
             value |= u64::from(b) << (i * 8);
         }
