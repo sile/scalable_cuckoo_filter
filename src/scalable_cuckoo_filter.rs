@@ -132,6 +132,31 @@ impl Default for ScalableCuckooFilterBuilder {
 use serde::{Deserialize, Serialize};
 
 /// Scalable Cuckoo Filter.
+///
+/// T can be any type that implements the `Hash` trait.
+/// If it contains inner references, you will need to introduce
+/// two wrapper types like in this example.:
+///
+///
+/// ```rust
+/// #[derive(Hash)]
+/// struct InnerTuple<'a>(&'a str, Option<&'a str>);
+/// #[derive(Hash)]
+/// struct MyTuple(InnerTuple<'static>);
+
+/// impl<'a> std::borrow::Borrow<InnerTuple<'a>> for MyTuple {
+    /// fn borrow(&self) -> &InnerTuple<'a> {
+        /// &self.0
+    /// }
+/// }
+///
+/// let mut filter = scalable_cuckoo_filter::ScalableCuckooFilter::<MyTuple>::new(1000, 0.05);
+/// let a = "hello".to_string();
+/// let q = InnerTuple(&a[..], None);
+/// filter.insert(&q);
+
+/// ```
+
 #[derive(Debug)]
 #[cfg_attr(feature = "serde_support", derive(Serialize, Deserialize))]
 pub struct ScalableCuckooFilter<T: ?Sized, H = DefaultHasher, R = DefaultRng> {
@@ -208,7 +233,12 @@ impl<T: Hash + ?Sized, H: Hasher + Clone, R: Rng> ScalableCuckooFilter<T, H, R> 
     }
 
     /// Returns `true` if this filter may contain `item`, otherwise `false`.
-    pub fn contains(&self, item: &T) -> bool {
+    //pub fn contains(&self, item: &T) -> bool {
+    pub fn contains<U>(&self, item: &U) -> bool
+    where
+        T: std::borrow::Borrow<U>,
+        U: Hash + ?Sized,
+    {
         let item_hash = crate::hash(&self.hasher, item);
         self.filters
             .iter()
@@ -233,7 +263,7 @@ impl<T: Hash + ?Sized, H: Hasher + Clone, R: Rng> ScalableCuckooFilter<T, H, R> 
     /// ```
     /// use scalable_cuckoo_filter::ScalableCuckooFilter;
     ///
-    /// let mut filter = ScalableCuckooFilter::new(1000, 0.001);
+    /// let mut filter = ScalableCuckooFilter::<str>::new(1000, 0.001);
     /// let items = ["foo", "bar", "foo", "baz"];
     ///
     /// for item in &items {
@@ -242,7 +272,11 @@ impl<T: Hash + ?Sized, H: Hasher + Clone, R: Rng> ScalableCuckooFilter<T, H, R> 
     ///     }
     /// }
     /// ```
-    pub fn insert(&mut self, item: &T) {
+    pub fn insert<U>(&mut self, item: &U)
+    where
+        T: std::borrow::Borrow<U>,
+        U: Hash + ?Sized,
+    {
         let item_hash = crate::hash(&self.hasher, item);
         let last = self.filters.len() - 1;
         self.filters[last].insert(&self.hasher, &mut self.rng, item_hash);
@@ -261,7 +295,11 @@ impl<T: Hash + ?Sized, H: Hasher + Clone, R: Rng> ScalableCuckooFilter<T, H, R> 
     /// Removes `item` from this filter.
     ///
     /// This method returns `true` if an entry with the same fingerprint as `item` has been removed, otherwise it returns `false`.
-    pub fn remove(&mut self, item: &T) -> bool {
+    pub fn remove<U>(&mut self, item: &U) -> bool
+    where
+        T: std::borrow::Borrow<U>,
+        U: Hash + ?Sized,
+    {
         let item_hash = crate::hash(&self.hasher, item);
         for filter in &mut self.filters {
             let removed = filter.remove(&self.hasher, item_hash);
@@ -309,7 +347,7 @@ mod test {
 
     #[test]
     fn it_works() {
-        let mut filter = ScalableCuckooFilter::new(1000, 0.001);
+        let mut filter = ScalableCuckooFilter::<str>::new(1000, 0.001);
         assert!(filter.is_empty());
         assert_eq!(filter.bits(), 14_336);
 
@@ -345,7 +383,7 @@ mod test {
         }
 
         let rng: StdRng = SeedableRng::from_seed(seed);
-        let mut filter = ScalableCuckooFilterBuilder::new()
+        let mut filter: ScalableCuckooFilter<u64, _, _> = ScalableCuckooFilterBuilder::new()
             .initial_capacity(100)
             .false_positive_probability(0.00001)
             .rng(rng)
@@ -372,7 +410,7 @@ mod test {
             .initial_capacity(100)
             .false_positive_probability(0.00001)
             .rng(rng)
-            .finish();
+            .finish::<usize>();
 
         for i in 0..10_000 {
             filter.insert(&i);
@@ -388,7 +426,7 @@ mod test {
 
     #[test]
     fn fingerprint_collision_remove_works() {
-        let mut filter = ScalableCuckooFilter::new(1000, 0.001);
+        let mut filter = ScalableCuckooFilter::<str>::new(1000, 0.001);
         filter.insert("foo");
         filter.insert("foo");
         assert!(filter.contains("foo"));
@@ -402,7 +440,7 @@ mod test {
 
     #[test]
     fn shrink_to_fit_works() {
-        let mut filter = ScalableCuckooFilter::new(1000, 0.001);
+        let mut filter = ScalableCuckooFilter::<i32>::new(1000, 0.001);
         for i in 0..100 {
             filter.insert(&i);
         }
@@ -419,7 +457,7 @@ mod test {
 
     #[test]
     fn info_params() {
-        let mut filter = ScalableCuckooFilter::new(10, 0.001);
+        let mut filter = ScalableCuckooFilter::<u64>::new(10, 0.001);
 
         // constant values
         assert_eq!(filter.max_kicks(), 512);
