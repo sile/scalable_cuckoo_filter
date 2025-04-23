@@ -155,9 +155,7 @@ use serde::{Deserialize, Serialize};
 /// let a = "hello".to_string();
 /// let q = InnerTuple(&a[..], None);
 /// filter.insert(&q);
-
 /// ```
-
 #[derive(Debug)]
 #[cfg_attr(feature = "serde_support", derive(Serialize, Deserialize))]
 pub struct ScalableCuckooFilter<T: ?Sized, H = DefaultHasher, R = DefaultRng> {
