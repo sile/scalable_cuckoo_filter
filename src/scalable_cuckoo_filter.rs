@@ -141,13 +141,14 @@ use serde::{Deserialize, Serialize};
 /// ```rust
 /// #[derive(Hash)]
 /// struct InnerTuple<'a>(&'a str, Option<&'a str>);
+///
 /// #[derive(Hash)]
 /// struct MyTuple(InnerTuple<'static>);
-
+///
 /// impl<'a> std::borrow::Borrow<InnerTuple<'a>> for MyTuple {
-    /// fn borrow(&self) -> &InnerTuple<'a> {
-        /// &self.0
-    /// }
+///     fn borrow(&self) -> &InnerTuple<'a> {
+///         &self.0
+///     }
 /// }
 ///
 /// let mut filter = scalable_cuckoo_filter::ScalableCuckooFilter::<MyTuple>::new(1000, 0.05);
@@ -252,11 +253,11 @@ impl<T: Hash + ?Sized, H: Hasher + Clone, R: Rng> ScalableCuckooFilter<T, H, R> 
     /// # Note
     ///
     /// Cuckoo Filter algorithm is unable to differentiate between two items with
-    /// the same fingerprint, so every [`insert`] method call will add a new entry
+    /// the same fingerprint, so every [`insert`](Self::insert) method call will add a new entry
     /// even if the same item is inserted multiple times.
     ///
-    /// This behavior is necessary to avoid false negatives when using the [`remove`] method.
-    /// However, if you do not plan to use the [`remove`] method, you can prevent potential
+    /// This behavior is necessary to avoid false negatives when using the [`remove`](Self::remove) method.
+    /// However, if you do not plan to use the [`remove`](Self::remove) method, you can prevent potential
     /// duplicate insertions by checking for the existence of the item before insertion,
     /// as shown below:
     ///
