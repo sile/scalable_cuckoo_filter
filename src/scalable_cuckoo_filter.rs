@@ -30,7 +30,7 @@ impl ScalableCuckooFilterBuilder<DefaultHasher, DefaultRng> {
             entries_per_bucket: 4,
             max_kicks: 512,
             hasher: SipHasher13::new(),
-            rng: rand::thread_rng(),
+            rng: rand::rng(),
         }
     }
 }

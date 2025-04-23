@@ -110,7 +110,7 @@ impl Buckets {
         bucket_index: usize,
         fingerprint: u64,
     ) -> u64 {
-        let i = rng.gen_range(0..self.entries_per_bucket);
+        let i = rng.random_range(0..self.entries_per_bucket);
         let f = self.get_fingerprint(bucket_index, i);
         self.set_fingerprint(bucket_index, i, fingerprint);
 
@@ -202,7 +202,7 @@ mod test {
         }
         assert!(!buckets.try_insert(333, 104)); // full
 
-        let old = buckets.random_swap(&mut rand::thread_rng(), 333, 104);
+        let old = buckets.random_swap(&mut rand::rng(), 333, 104);
         assert!(buckets.contains(333, 104));
         assert!(!buckets.contains(333, old));
     }

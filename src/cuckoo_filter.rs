@@ -153,7 +153,7 @@ impl CuckooFilter {
         }
 
         let mut fingerprint = fingerprint;
-        let mut i = if rng.gen::<bool>() { i0 } else { i1 };
+        let mut i = if rng.random::<bool>() { i0 } else { i1 };
         let mut prev_i = i;
         for _ in 0..self.max_kicks {
             fingerprint = self.buckets.random_swap(rng, i, fingerprint);
