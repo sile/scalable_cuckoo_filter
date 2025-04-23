@@ -4,7 +4,6 @@ scalable_cuckoo_filter
 [![scalable_cuckoo_filter](https://img.shields.io/crates/v/scalable_cuckoo_filter.svg)](https://crates.io/crates/scalable_cuckoo_filter)
 [![Documentation](https://docs.rs/scalable_cuckoo_filter/badge.svg)](https://docs.rs/scalable_cuckoo_filter)
 [![Actions Status](https://github.com/sile/scalable_cuckoo_filter/workflows/CI/badge.svg)](https://github.com/sile/scalable_cuckoo_filter/actions)
-[![Coverage Status](https://coveralls.io/repos/github/sile/scalable_cuckoo_filter/badge.svg?branch=master)](https://coveralls.io/github/sile/scalable_cuckoo_filter?branch=master)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 A variant of [Cuckoo Filter][cuckoo filter] whose size automatically scales as necessary.

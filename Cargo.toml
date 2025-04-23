@@ -14,9 +14,6 @@ license = "MIT"
 [features]
 serde_support = ["serde","serde_bytes"]
 
-[badges]
-coveralls = {repository = "sile/scalable_cuckoo_filter"}
-
 [dependencies]
 rand = "0.8"
 siphasher = "1"
