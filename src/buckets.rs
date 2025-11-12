@@ -173,11 +173,9 @@ impl Iterator for Iter<'_> {
                 self.entry_i = 0;
             } else {
                 let f = self.buckets.get_fingerprint(self.bucket_i, self.entry_i);
-                if f == 0 {
-                    self.bucket_i += 1;
-                    self.entry_i = 0;
-                } else {
-                    self.entry_i += 1;
+                self.entry_i += 1;
+                
+                if f != 0 {
                     return Some((self.bucket_i, f));
                 }
             }
@@ -205,5 +203,17 @@ mod test {
         let old = buckets.random_swap(&mut rand::rng(), 333, 104);
         assert!(buckets.contains(333, 104));
         assert!(!buckets.contains(333, old));
+    }
+
+    #[test]
+    fn iter_skips_zero_slots_without_losing_items() {
+        let mut buckets = Buckets::new(8, 4, 1);
+        assert!(buckets.try_insert(0, 10));
+        assert!(buckets.try_insert(0, 11));
+
+        assert!(buckets.remove_fingerprint(0, 10));
+
+        let collected: Vec<_> = buckets.iter().collect();
+        assert_eq!(collected, vec![(0, 11)]);
     }
 }
