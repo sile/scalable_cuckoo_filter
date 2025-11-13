@@ -173,12 +173,10 @@ impl Iterator for Iter<'_> {
                 self.entry_i = 0;
             } else {
                 let f = self.buckets.get_fingerprint(self.bucket_i, self.entry_i);
-                if f == 0 {
-                    self.entry_i += 1;
-                } else {
-                    let bucket = self.bucket_i;
-                    self.entry_i += 1;
-                    return Some((bucket, f));
+                self.entry_i += 1;
+                
+                if f != 0 {
+                    return Some((self.bucket_i, f));
                 }
             }
         }
