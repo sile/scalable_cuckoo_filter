@@ -1,4 +1,4 @@
-use rand::{rngs::ThreadRng, Rng};
+use rand::{Rng, rngs::ThreadRng};
 use siphasher::sip::SipHasher13;
 use std::hash::{Hash, Hasher};
 use std::marker::PhantomData;
@@ -374,7 +374,7 @@ mod test {
 
     #[test]
     fn insert_works() {
-        use rand::{rngs::StdRng, SeedableRng};
+        use rand::{SeedableRng, rngs::StdRng};
 
         let mut seed = [0; 32];
         for i in 0..seed.len() {
@@ -397,7 +397,7 @@ mod test {
 
     #[test]
     fn remove_works() {
-        use rand::{rngs::StdRng, SeedableRng};
+        use rand::{SeedableRng, rngs::StdRng};
 
         let mut seed = [0; 32];
         for i in 0..seed.len() {

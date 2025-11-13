@@ -174,7 +174,7 @@ impl Iterator for Iter<'_> {
             } else {
                 let f = self.buckets.get_fingerprint(self.bucket_i, self.entry_i);
                 self.entry_i += 1;
-                
+
                 if f != 0 {
                     return Some((self.bucket_i, f));
                 }
