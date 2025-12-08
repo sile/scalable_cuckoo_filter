@@ -239,7 +239,7 @@ impl<T: Hash + ?Sized, H: Hasher + Clone, R: Rng> ScalableCuckooFilter<T, H, R> 
         U: Hash + ?Sized,
     {
         let item_hash = crate::hash(&self.hasher, item);
-        return self.contains_hash(item_hash);
+        self.contains_hash(item_hash)
     }
 
     fn contains_hash(&self, item_hash: u64) -> bool {
