@@ -239,6 +239,10 @@ impl<T: Hash + ?Sized, H: Hasher + Clone, R: Rng> ScalableCuckooFilter<T, H, R> 
         U: Hash + ?Sized,
     {
         let item_hash = crate::hash(&self.hasher, item);
+        return self.contains_hash(item_hash);
+    }
+
+    fn contains_hash(&self, item_hash: u64) -> bool {
         self.filters
             .iter()
             .any(|f| f.contains(&self.hasher, item_hash))
@@ -277,10 +281,45 @@ impl<T: Hash + ?Sized, H: Hasher + Clone, R: Rng> ScalableCuckooFilter<T, H, R> 
         U: Hash + ?Sized,
     {
         let item_hash = crate::hash(&self.hasher, item);
+        self.insert_hash(item_hash);
+    }
+    fn insert_hash(&mut self, item_hash: u64) {
         let last = self.filters.len() - 1;
         self.filters[last].insert(&self.hasher, &mut self.rng, item_hash);
         if self.filters[last].is_nearly_full() {
             self.grow();
+        }
+    }
+
+    /// Insert `item` into this filter - if not already inserted.
+    ///
+    /// This is equvialent to the following:
+    /// ```
+    /// use scalable_cuckoo_filter::ScalableCuckooFilter;
+    ///
+    /// let mut filter = ScalableCuckooFilter::<str>::new(1000, 0.001);
+    /// let item = "foo";
+    ///
+    /// if !filter.contains(item) {
+    ///     filter.insert(item)
+    ///}
+    ///```
+    /// but `insert_if_not_contained` is more efficient since it only hashes the item once.
+    ///
+    /// See `insert` method for notes on duplicate insertions.
+    ///
+    /// Returns whether the `item` was already in the container.
+    pub fn insert_if_not_contained<U>(&mut self, item: &U) -> bool
+    where
+        T: std::borrow::Borrow<U>,
+        U: Hash + ?Sized,
+    {
+        let item_hash = crate::hash(&self.hasher, item);
+        if !self.contains_hash(item_hash) {
+            self.insert_hash(item_hash);
+            false
+        } else {
+            true
         }
     }
 
