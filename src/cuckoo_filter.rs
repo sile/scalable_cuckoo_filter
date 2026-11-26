@@ -115,6 +115,10 @@ impl CuckooFilter {
                 let shrunk_i = shrunk_filter.buckets.index(i as u64);
                 shrunk_filter.insert_fingerprint(hasher, rng, shrunk_i, fingerprint);
             }
+            for &(fingerprint, i) in &self.exceptional_items.0 {
+                let shrunk_i = shrunk_filter.buckets.index(i as u64);
+                shrunk_filter.insert_fingerprint(hasher, rng, shrunk_i, fingerprint);
+            }
             *self = shrunk_filter;
         }
         self.exceptional_items.shrink_to_fit();
