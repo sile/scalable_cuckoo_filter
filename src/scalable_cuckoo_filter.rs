@@ -494,6 +494,22 @@ mod test {
     }
 
     #[test]
+    fn shrink_to_fit_keeps_zero_fingerprint_items() {
+        // With this probability, item 216 has a zero fingerprint in the first filter,
+        // so it is kept outside the buckets.
+        let mut filter = ScalableCuckooFilter::<u64>::new(1000, 0.1);
+        for i in 0..300 {
+            filter.insert(&i);
+        }
+
+        filter.shrink_to_fit();
+        for i in 0..300 {
+            assert!(filter.contains(&i));
+        }
+        assert_eq!(filter.len(), 300);
+    }
+
+    #[test]
     fn info_params() {
         let mut filter = ScalableCuckooFilter::<u64>::new(10, 0.001);
 
